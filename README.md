@@ -192,6 +192,8 @@ bypass the mobile waveform fallback; mobile calls still create no analysis
 AudioContext. Desktop diagnostic controls can suspend analysis or skip it for
 the next call without changing the live connection or microphone processing.
 
+Panels, menus, cards, fields and buttons use the shared `--cv-radius: 4px` token.
+
 An entity is a conversation participant, including the caller, Aria and Luna.
 The panel labels visible turns as "You:" and "Aria:", with a Lucide user icon
 and the Aria mark respectively. Aria’s answers use the secondary gray token.

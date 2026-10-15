@@ -37,6 +37,7 @@ function updateMobileThemes() {
   for (const menu of document.querySelectorAll('nav[aria-label="Mobile menu"]')) {
     const popover = menu.closest('[role="dialog"]');
     if (!popover) continue;
+    popover.setAttribute('aria-label', 'Site navigation');
     let group = popover.querySelector<HTMLElement>('.cv-mobile-themes');
     if (!group) {
       group = document.createElement('div');

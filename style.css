@@ -19,15 +19,16 @@
   --cv-paper: rgb(var(--background-light));
   --cv-ink: rgb(var(--gray-900));
   --cv-muted: rgb(var(--gray-400));
+  --cv-name-color: rgb(var(--gray-300));
   --aria-rest-color: var(--cv-muted);
-  --cv-accent: var(--cv-ink);
+  --cv-accent: #737373;
   --cv-line: rgb(var(--gray-200));
 }
 .dark {
   --cv-paper: rgb(var(--background-dark));
   --cv-ink: rgb(var(--gray-100));
   --cv-muted: rgb(var(--gray-400));
-  --cv-accent: var(--cv-ink);
+  --cv-name-color: var(--cv-muted);
   --cv-line: rgb(var(--gray-800));
   --aria-rest-color: var(--cv-muted);
 }
@@ -54,10 +55,10 @@ html { scroll-behavior: smooth; scroll-padding-top: 100px; }
 #theme-preference-menu-trigger,
 #navbar button[aria-label="More actions"] { color: var(--cv-muted); }
 :is(#navbar .navbar-link a, #navbar .cv-header-search, #navbar .cv-header-aria, #search-bar-entry-mobile, #theme-preference-menu-trigger, #navbar button[aria-label="More actions"], #navbar a:has(> .nav-logo)):is(:hover, :focus-visible) {
-  color: rgb(var(--primary));
+  color: var(--cv-accent);
 }
 :is(#navbar .navbar-link a, #navbar .cv-header-search, #navbar .cv-header-aria, #search-bar-entry-mobile, #theme-preference-menu-trigger, #navbar button[aria-label="More actions"], #navbar a:has(> .nav-logo)):focus-visible {
-  outline: 2px solid rgb(var(--primary));
+  outline: 2px solid var(--cv-accent);
   outline-offset: 4px;
   border-radius: 2px;
 }
@@ -258,7 +259,7 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .cv-aria-form input::placeholder { color: var(--cv-muted); }
 #cv-aria-dialog .cv-aria-form button { border: 0; width: 40px; padding: 0; color: var(--cv-muted); }
 .cv-aria-note { flex-shrink: 0; }
-.cv h1 { font-family: var(--cv-font-heading); font-size: calc(var(--cv-name-size) * 2 / 3 * 1.1); font-weight: 800; color: var(--cv-muted); }
+.cv h1 { font-family: var(--cv-font-heading); font-size: calc(var(--cv-name-size) * 2 / 3 * 1.1); font-weight: 800; color: var(--cv-name-color); }
 .cv h2, .cv h3, .cv-role { font-family: var(--cv-font-heading); font-size: var(--cv-title-size); font-weight: 900; }
 .cv-role span { font-family: var(--cv-font-body); font-size: var(--cv-body-size); font-weight: 400; }
 .cv :is(strong, b) { font-weight: 700; }

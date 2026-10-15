@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@200&display=swap");
+
 :root {
   --cv-body-size: 16px;
   --cv-title-size: 20px;
@@ -116,7 +118,7 @@ nav[aria-label="Mobile menu"] li:has(.cv-header-icon) { width: auto; }
   height: var(--header-icon-size);
   flex-shrink: 0;
 }
-.cv h1 { font-size: calc(var(--cv-name-size) * 2 / 3); font-weight: 900; }
+.cv h1 { font-size: calc(var(--cv-name-size) * 2 / 3); font-weight: 200; }
 .cv h2, .cv h3, .cv-role { font-size: var(--cv-title-size); font-weight: 900; }
 .cv-role span { font-size: var(--cv-body-size); font-weight: 400; }
 .cv *, .cv *::before, .cv *::after { box-sizing: border-box; }

@@ -148,8 +148,8 @@ when the panel closes.
 The entity preserves native Aria's 45 ms attack, 260 ms release, 220 ms background
 pulse decay, speech normalization and event-magnitude response. The centre ring
 meters the visitor, the outer arcs meter Aria, and the top dot follows Luna's
-real streaming activity. The middle arcs stay steady. Read-only WebRTC statistics
-leave the direct audio path intact. Colours follow the current
+real streaming activity. The middle arcs stay steady. Waveform analysis
+leaves the direct audio path intact. Colours follow the current
 theme. The desktop entity is 25% taller than the name-to-summary text span and
 centred vertically across that span, with a small leftward offset. Mobile uses
 a smaller mark centred beside the name.
@@ -162,12 +162,14 @@ The hover highlight blends back into the live voice levels over 0.5 seconds on
 exit, rather than switching stroke colours abruptly. The selected dot colour
 stays set until its contribution has faded out. Voice levels are not delayed
 by CSS stroke transitions.
-Voice metering reads WebRTC's existing audio statistics every 50 ms, including
-interval audio energy when a browser omits `audioLevel`. It does not create a
-Web Audio context, connect capture to the speakers, or reroute playback for the
-animation. The native attack and release envelopes run independently on animation
-frames. During a call the Entity uses full opacity and full-contrast active strokes;
-its resting gray and hover treatment remain separate.
+Voice metering uses the original 256-sample waveform analyser on every animation
+frame, with the original normalization, 45 ms attack, and 260 ms release. The
+analyser outputs are unconnected: they read the streams without creating another
+speaker-output branch. The analysis context opens after microphone capture has
+established the device sample rate. Playback remains in a separate audio element
+in the document body, including during hero-only conversations. During a call the
+Entity uses full opacity and full-contrast active strokes; its resting gray and
+hover treatment remain separate.
 
 Echo cancellation, noise suppression, and automatic gain control remain enabled
 on every platform. iOS 27 has a reported WebKit regression in simultaneous

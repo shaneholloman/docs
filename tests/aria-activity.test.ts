@@ -1,36 +1,10 @@
 import { test, expect } from 'bun:test';
 import {
   voiceLevel,
-  createAudioStatsMeter,
   followEnvelope,
   backgroundPulse,
   strokeBrightness
 } from '../src/shared/aria-activity.ts';
-
-test('WebRTC meters distinguish speakers and use interval energy when audioLevel is absent', () => {
-  const meter = createAudioStatsMeter();
-  const reports = (energy: number, duration: number) => [
-    { id: 'mic', type: 'media-source', kind: 'audio', audioLevel: 0.14 },
-    {
-      id: 'aria',
-      type: 'inbound-rtp',
-      kind: 'audio',
-      totalAudioEnergy: energy,
-      totalSamplesDuration: duration
-    },
-    { id: 'video', type: 'inbound-rtp', kind: 'video', audioLevel: 1 }
-  ];
-  expect(meter.read(reports(1, 10))).toEqual({ visitor: 1, voice: 0 });
-  expect(meter.read(reports(1 + 0.14 ** 2, 11)).voice).toBeCloseTo(1, 6);
-  // Some browsers refresh statistics more slowly than our polling interval.
-  expect(meter.read(reports(1 + 0.14 ** 2, 11)).voice).toBeCloseTo(1, 6);
-  expect(meter.read(reports(1 + 0.14 ** 2, 12)).voice).toBe(0);
-  meter.reset();
-  expect(meter.read(reports(0, 0)).voice).toBe(0);
-  expect(
-    meter.read([{ id: 'aria', type: 'inbound-rtp', kind: 'audio', audioLevel: 0.14 }]).voice
-  ).toBe(1);
-});
 
 test('native speech metering ignores the noise floor and reaches full level at normal speech', () => {
   expect(voiceLevel(new Float32Array(256).fill(0.005))).toBe(0);

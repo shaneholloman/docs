@@ -261,6 +261,8 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
+      entity.prepareAudio(stream);
+      entity.input(stream);
       peer = new RTCPeerConnection();
       audio = document.createElement('audio');
       audio.autoplay = true;
@@ -269,10 +271,10 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       // Keep playback in the document even when the voice-only panel is closed.
       document.body.append(audio);
       for (const track of stream.getTracks()) peer.addTrack(track, stream);
-      entity.observe(peer);
       peer.addEventListener('track', (event) => {
         if (!audio) return;
         audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+        entity.output(audio.srcObject as MediaStream);
         void audio.play().catch(() => {
           if (currentGeneration === generation)
             status.textContent = 'Your browser blocked audio. End and restart the conversation.';

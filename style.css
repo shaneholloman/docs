@@ -28,7 +28,7 @@
   --cv-muted: rgb(var(--gray-400));
   --cv-accent: rgb(var(--primary-light));
   --cv-line: rgb(var(--gray-800));
-  --aria-rest-color: color-mix(in srgb, var(--cv-paper), var(--cv-ink) calc(100% * 84 / 245));
+  --aria-rest-color: var(--cv-muted);
 }
 html { scroll-behavior: smooth; scroll-padding-top: 100px; }
 .lucide { width: 1em; height: 1em; }

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Shane Holloman",
+  "description": "Head of AI at Cello Group. AI solutions, DevOps, infrastructure engineering, and creative technology.",
+  "logo": "/favicon.svg",
+  "favicon": "/favicon.svg",
+  "colors": { "primary": "#0D9373", "light": "#07C983", "dark": "#0D9373" },
+  "fonts": {
+    "heading": { "family": "Roboto", "weight": 900 },
+    "body": { "family": "Roboto", "weight": 400 }
+  },
+  "navigation": { "pages": ["index"] },
+  "navbar": {
+    "links": [
+      { "label": "Experience", "href": "https://shaneholloman.dev/#experience" },
+      { "label": "Expertise", "href": "https://shaneholloman.dev/#expertise" },
+      { "label": "Education", "href": "https://shaneholloman.dev/#education-heading" },
+      { "label": "GitHub", "href": "https://github.com/shaneholloman" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/shaneholloman" },
+      { "label": "Get in touch", "href": "mailto:shaneholloman@gmail.com" }
+    ]
+  },
+  "contextual": { "options": [] },
+  "redirects": [{ "source": "/introduction", "destination": "/", "permanent": true }]
+}

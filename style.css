@@ -20,7 +20,7 @@
   --cv-ink: rgb(var(--gray-900));
   --cv-muted: rgb(var(--gray-400));
   --cv-name-color: rgb(var(--gray-300));
-  --aria-rest-color: var(--cv-muted);
+  --aria-rest-color: color-mix(in srgb, var(--cv-muted), white 15%);
   --cv-accent: #737373;
   --cv-line: rgb(var(--gray-200));
 }

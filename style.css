@@ -293,6 +293,8 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 #cv-aria-dialog .cv-aria-form button { border: 0; width: 40px; padding: 0; color: var(--cv-muted); }
 .cv-aria-note { flex-shrink: 0; }
 .cv-aria-diagnostics { flex-shrink: 0; padding-top: 12px; border-top: 1px solid var(--cv-line); }
+#cv-aria-dialog:has(.cv-aria-diagnostics) { overflow-y: auto; scrollbar-width: none; }
+#cv-aria-dialog:has(.cv-aria-diagnostics)::-webkit-scrollbar { display: none; }
 .cv-aria-diagnostics summary { cursor: pointer; }
 .cv-aria-diagnostics p { margin: 12px 0; color: var(--cv-muted); }
 .cv-aria-diagnostic-actions { display: flex; flex-wrap: wrap; gap: 8px; }

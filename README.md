@@ -182,11 +182,12 @@ lead, not a verified diagnosis or reason to disable communication features.
 Any further workaround needs a local iPhone listening check before publication;
 desktop emulation cannot validate its audio quality.
 
-An opt-in audio diagnostic is available locally at
-`http://localhost:3000/?aria-audio-test=1`, under the header Aria panel. It remains
-disabled on the production CV, including when that query parameter is present.
-The same gate supports the NAS preview hostname, but diagnostic code must be staged
-there explicitly before iPhone testing. During one live call, the diagnostic can
+The staging header Aria panel includes an Audio diagnostic section directly below
+its introduction. Open `https://aria.shaneholloman.dev/`; no query parameter is
+required. Diagnostic panels can scroll on short mobile viewports, with scrollbars
+hidden. Locally, opt in at `http://localhost:3000/?aria-audio-test=1`. Diagnostics
+remain disabled on the production CV, including when that query parameter is
+present. During one live call, the diagnostic can
 suspend and resume only the analysis AudioContext. Rings freeze while suspended;
 the WebRTC connection, playback element, capture stream, and microphone processing
 are untouched. A separate checkbox starts the next call without creating an

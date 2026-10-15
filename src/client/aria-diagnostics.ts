@@ -44,9 +44,9 @@ const identitySchema = z.object({
 export function audioDiagnosticsEnabled(origin: string, search: string) {
   const url = new URL(origin);
   return (
-    (url.origin === 'https://aria.shaneholloman.dev' ||
-      ['localhost', '127.0.0.1'].includes(url.hostname)) &&
-    new URLSearchParams(search).get('aria-audio-test') === '1'
+    url.origin === 'https://aria.shaneholloman.dev' ||
+    (['localhost', '127.0.0.1'].includes(url.hostname) &&
+      new URLSearchParams(search).get('aria-audio-test') === '1')
   );
 }
 
@@ -185,7 +185,7 @@ export function createAudioDiagnostics() {
       if (baseline) baseline.disabled = false;
       update();
     },
-    attach(parent: HTMLElement) {
+    attach(parent: HTMLElement, before: HTMLElement) {
       const details = document.createElement('details');
       details.className = 'cv-aria-diagnostics';
       const title = document.createElement('summary');
@@ -246,7 +246,7 @@ export function createAudioDiagnostics() {
       });
       actions.append(pause, mark, copy);
       details.append(title, note, baselineLabel, summary, actions, reportField);
-      parent.append(details);
+      parent.insertBefore(details, before);
       update();
     }
   };

@@ -1,12 +1,14 @@
 import { test, expect } from 'bun:test';
 import { audioDiagnosticsEnabled, summarizeAudioStats } from '../src/client/aria-diagnostics.ts';
 
-test('audio diagnostics require opt-in on local or staged origins and cannot run in production', () => {
-  for (const origin of ['http://localhost:3000', 'https://aria.shaneholloman.dev']) {
+test('staging diagnostics survive plain URLs, local diagnostics require opt-in, and production cannot enable them', () => {
+  for (const origin of ['http://localhost:3000', 'http://127.0.0.1:3000']) {
     expect(audioDiagnosticsEnabled(origin, '')).toBe(false);
     expect(audioDiagnosticsEnabled(origin, '?aria-audio-test=0')).toBe(false);
     expect(audioDiagnosticsEnabled(origin, '?aria-audio-test=1')).toBe(true);
   }
+  for (const search of ['', '?aria-audio-test=0', '?aria-audio-test=1'])
+    expect(audioDiagnosticsEnabled('https://aria.shaneholloman.dev', search)).toBe(true);
   for (const origin of ['https://shaneholloman.dev', 'https://aria.shaneholloman.dev.example'])
     expect(audioDiagnosticsEnabled(origin, '?aria-audio-test=1')).toBe(false);
 });

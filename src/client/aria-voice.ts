@@ -519,7 +519,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     note.className = 'cv-aria-note';
     note.textContent = 'Mic on only during conversations.';
     dialog.append(header, description, actions, settings, status, transcript, form, note);
-    diagnostics?.attach(dialog);
+    diagnostics?.attach(dialog, actions);
     document.body.append(dialog);
     dialog.addEventListener('close', () => {
       if (activation === 'panel') stop();

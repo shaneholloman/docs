@@ -39,18 +39,10 @@ const updateAriaHeader = setupAria({ icon: name => renderIcon([name, {
 
 function updateHeader() {
   updateBodyIcons();
-  const navigation = document.querySelector('#navbar nav[aria-label="Main"] > ul');
-  if (navigation && !navigation.querySelector('.cv-search-item')) {
-    const item = document.createElement('li');
-    item.className = 'cv-search-item';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'cv-header-search';
-    button.setAttribute('aria-label', 'Open search');
-    button.setAttribute('title', 'Search');
-    button.append(renderIcon(['search', Search]));
-    item.append(button);
-    navigation.prepend(item);
+  for (const link of document.querySelectorAll('.navbar-link a[href$="#cv-search"]')) {
+    link.classList.add('cv-header-search');
+    link.setAttribute('aria-label', 'Open search');
+    link.setAttribute('title', 'Search');
   }
   updateAriaHeader();
   const mobileSearch = document.getElementById('search-bar-entry-mobile');
@@ -66,7 +58,10 @@ function updateHeader() {
   }
   for (const link of document.querySelectorAll('.navbar-link a')) {
     const url = new URL(link.getAttribute('href'), location.href);
-    if (url.hash && document.getElementById(url.hash.slice(1))) {
+    if (['#cv-search', '#cv-aria'].includes(url.hash)) {
+      link.removeAttribute('target');
+      link.removeAttribute('rel');
+    } else if (url.hash && document.getElementById(url.hash.slice(1))) {
       if (link.getAttribute('href') !== url.hash) link.setAttribute('href', url.hash);
       link.removeAttribute('target');
       link.removeAttribute('rel');

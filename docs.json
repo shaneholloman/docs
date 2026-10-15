@@ -14,12 +14,14 @@
   "navigation": { "pages": ["index"] },
   "navbar": {
     "links": [
+      { "label": "Search", "href": "https://shaneholloman.dev/#cv-search", "icon": "search" },
+      { "label": "Talk to Aria", "href": "https://shaneholloman.dev/#cv-aria", "icon": "/aria.svg" },
       { "label": "Experience", "href": "https://shaneholloman.dev/#experience" },
       { "label": "Expertise", "href": "https://shaneholloman.dev/#expertise" },
       { "label": "Education", "href": "https://shaneholloman.dev/#education-heading" },
-      { "label": "GitHub", "href": "https://github.com/shaneholloman" },
-      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/shaneholloman" },
-      { "label": "Get in touch", "href": "mailto:shaneholloman@gmail.com" }
+      { "label": "GitHub", "href": "https://github.com/shaneholloman", "icon": "code-xml" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/shaneholloman", "icon": "contact-round" },
+      { "label": "Get in touch", "href": "mailto:shaneholloman@gmail.com", "icon": "mail" }
     ]
   },
   "contextual": { "options": [] },

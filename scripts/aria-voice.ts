@@ -631,19 +631,11 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       bindAriaEntityHover(heroButton, svg);
       cycleHeroDot(hero);
     }
-    const search = document.querySelector('.cv-search-item');
-    if (search && !search.parentElement?.querySelector('.cv-aria-item')) {
-      const item = document.createElement('li');
-      item.className = 'cv-aria-item';
-      const trigger = document.createElement('button');
-      trigger.type = 'button';
-      trigger.className = 'cv-header-aria';
+    for (const trigger of document.querySelectorAll('.navbar-link a[href$="#cv-aria"]')) {
+      trigger.classList.add('cv-header-aria');
       trigger.setAttribute('aria-label', 'Talk to Aria');
       trigger.setAttribute('title', 'Talk to Aria');
       trigger.setAttribute('aria-haspopup', 'dialog');
-      trigger.append(mark());
-      item.append(trigger);
-      search.after(item);
     }
     const mobile = document.getElementById('search-bar-entry-mobile');
     if (mobile && !mobile.parentElement?.querySelector('.cv-header-aria')) {

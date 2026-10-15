@@ -172,7 +172,7 @@ export function setupCvSearch({ searchIcon, closeIcon, resultIcon }) {
   }
 
   document.addEventListener('click', (event) => {
-    if (!event.target.closest('.cv-header-search, #search-bar-entry, #search-bar-entry-mobile')) return;
+    if (!event.target.closest('.cv-header-search, .navbar-link a[href$="#cv-search"], #search-bar-entry, #search-bar-entry-mobile')) return;
     if (!document.querySelector('.cv')) return;
     event.preventDefault();
     event.stopImmediatePropagation();

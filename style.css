@@ -325,6 +325,8 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .cv-aria-hero .cv-aria-entity :is(path, circle) { pointer-events: stroke; cursor: pointer; }
 .cv-aria-hero.active { --aria-hover-light: 1; --aria-dot-hover: 1; transform: scale(1.005); opacity: 1; filter: drop-shadow(0 0 10px rgba(255, 255, 255, .3)); }
 .cv-aria-hero[aria-pressed="true"] { --aria-hover-light: 0; --aria-dot-hover: 0; opacity: 1; }
+.cv-aria-hero.cv-aria-mobile[aria-pressed="true"] { animation: aria-mobile-breathe 2s ease-in-out infinite; }
+@keyframes aria-mobile-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .8; } }
 .cv-aria-hero[aria-pressed="false"] { --aria-dot-rest-color: var(--cv-period-color); }
 .cv-aria-hero .cv-aria-entity [data-aria-part="background"] { stroke: color-mix(in srgb, var(--aria-hover-dot, var(--aria-active-color)) calc(var(--aria-dot-hover) * 100%), var(--aria-dot-rest-color, color-mix(in srgb, var(--aria-rest-color), var(--aria-active-color) calc(var(--aria-activity) * 100%)))); }
 .cv-hero h1 { margin: 0 0 30px; letter-spacing: -.025em; line-height: .98; white-space: nowrap; }
@@ -422,6 +424,7 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
   .cv-footer p { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .cv-hero { transition: none; } .cv-aria-hero { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cv-aria-hero.cv-aria-mobile[aria-pressed="true"] { animation: none; } }
 @media print {
   @page { size: A4; margin: 12mm; }
   html, body { background: white !important; }

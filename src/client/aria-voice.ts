@@ -6,6 +6,7 @@ import {
   errorResultSchema
 } from '../shared/aria-contracts.ts';
 import type { AriaEvent } from '../shared/aria-contracts.ts';
+import { waveformAnalysisEnabled } from './aria-audio.ts';
 import { audioDiagnosticsEnabled, createAudioDiagnostics } from './aria-diagnostics.ts';
 import {
   createAriaEntity,
@@ -639,6 +640,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       heroButton = document.createElement('button');
       heroButton.type = 'button';
       heroButton.className = 'cv-aria-hero';
+      heroButton.classList.toggle('cv-aria-mobile', !waveformAnalysisEnabled(navigator));
       heroButton.setAttribute('aria-label', 'Speak with Aria');
       heroButton.setAttribute('title', 'Aria Entity');
       heroButton.setAttribute('aria-pressed', 'false');

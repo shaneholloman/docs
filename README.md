@@ -173,7 +173,9 @@ of the analysis AudioContext. This includes iPhones, iPads (also in desktop mode
 and Android devices. Device detection is independent of viewport width, so a
 narrow desktop window retains desktop waveform analysis. The Entity remains
 visible with its resting effects and Luna activity; its voice rings do not react
-to speech on mobile. A real iPhone listening test with no analysis context was
+to speech on mobile. While connecting or in a call, the hero Entity gently
+breathes between 80% and full opacity, taking one second each way. Reduced-motion
+preferences disable that pulse. A real iPhone listening test with no analysis context was
 completely clear after earlier analyser-enabled calls crackled. Mobile waveform
 analysis can be revisited separately and must pass an iPhone listening check
 before publication. Desktop emulation cannot validate mobile audio quality.

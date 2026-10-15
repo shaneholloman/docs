@@ -4,6 +4,11 @@
 @property --aria-dot-hover { syntax: "<number>"; inherits: true; initial-value: 0; }
 @property --cv-period-color { syntax: "<color>"; inherits: true; initial-value: #34d399; }
 
+/* Allow native pull-to-refresh on the page; dialogs retain their scroll lock. */
+html:not(:has(#cv-search-dialog[open], #cv-aria-dialog[open])) {
+  overscroll-behavior-y: auto !important;
+}
+
 :root {
   --cv-font-body: "Roboto", sans-serif;
   --cv-font-heading: "Montserrat", sans-serif;

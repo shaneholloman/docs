@@ -1,16 +1,20 @@
 import { test, expect } from 'bun:test';
 import { audioDiagnosticsEnabled, summarizeAudioStats } from '../src/client/aria-diagnostics.ts';
 
-test('staging diagnostics survive plain URLs, local diagnostics require opt-in, and production cannot enable them', () => {
-  for (const origin of ['http://localhost:3000', 'http://127.0.0.1:3000']) {
+test('diagnostics require explicit URL opt-in on every supported host', () => {
+  for (const origin of [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://aria.shaneholloman.dev',
+    'https://shaneholloman.dev'
+  ]) {
     expect(audioDiagnosticsEnabled(origin, '')).toBe(false);
     expect(audioDiagnosticsEnabled(origin, '?aria-audio-test=0')).toBe(false);
     expect(audioDiagnosticsEnabled(origin, '?aria-audio-test=1')).toBe(true);
   }
-  for (const search of ['', '?aria-audio-test=0', '?aria-audio-test=1'])
-    expect(audioDiagnosticsEnabled('https://aria.shaneholloman.dev', search)).toBe(true);
-  for (const origin of ['https://shaneholloman.dev', 'https://aria.shaneholloman.dev.example'])
-    expect(audioDiagnosticsEnabled(origin, '?aria-audio-test=1')).toBe(false);
+  expect(
+    audioDiagnosticsEnabled('https://aria.shaneholloman.dev.example', '?aria-audio-test=1')
+  ).toBe(false);
 });
 
 test('transport reports retain audio degradation counters and selected codec without private fields', () => {

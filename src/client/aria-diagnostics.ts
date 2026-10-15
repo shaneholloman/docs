@@ -43,11 +43,10 @@ const identitySchema = z.object({
 
 export function audioDiagnosticsEnabled(origin: string, search: string) {
   const url = new URL(origin);
-  return (
-    url.origin === 'https://aria.shaneholloman.dev' ||
-    (['localhost', '127.0.0.1'].includes(url.hostname) &&
-      new URLSearchParams(search).get('aria-audio-test') === '1')
-  );
+  const allowed =
+    ['https://aria.shaneholloman.dev', 'https://shaneholloman.dev'].includes(url.origin) ||
+    ['localhost', '127.0.0.1'].includes(url.hostname);
+  return allowed && new URLSearchParams(search).get('aria-audio-test') === '1';
 }
 
 export function summarizeAudioStats(report: RTCStatsReport) {

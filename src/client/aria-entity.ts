@@ -1,3 +1,4 @@
+import { waveformAnalysisEnabled } from './aria-audio.ts';
 import iconSource from '../../aria.svg' with { type: 'text' };
 import {
   voiceLevel,
@@ -100,7 +101,9 @@ export function createAriaEntity(onAudioContext?: (context: AudioContext | undef
       return svg;
     },
     prepareAudio(stream: MediaStream) {
-      if (context || !window.AudioContext) return;
+      // Mobile playback stays on the direct WebRTC audio-element path.
+      // Creating the metering context caused crackles in iPhone listening tests.
+      if (!waveformAnalysisEnabled(navigator) || context || !window.AudioContext) return;
       try {
         // Capture establishes the device sample rate before the visualizer opens.
         context = new AudioContext({

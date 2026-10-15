@@ -162,42 +162,33 @@ The hover highlight blends back into the live voice levels over 0.5 seconds on
 exit, rather than switching stroke colours abruptly. The selected dot colour
 stays set until its contribution has faded out. Voice levels are not delayed
 by CSS stroke transitions.
-Voice metering uses the original 256-sample waveform analyser on every animation
-frame, with the original normalization, 45 ms attack, and 260 ms release. The
-analyser outputs are unconnected: they read the streams without creating another
-speaker-output branch. The analysis context opens after the playback element signals `playing`, using
-the microphone capture sample rate. The staged startup-order candidate failed its
-iPhone listening check: Safari and Chrome still crackle through both entry points,
-although ring response is correct. It must not be promoted as an audio fix.
-Playback remains in a separate audio element
-in the document body, including during hero-only conversations. During a call the
-Entity uses full opacity and full-contrast active strokes; its resting gray and
-hover treatment remain separate.
+Desktop voice metering uses the original 256-sample waveform analyser on every
+animation frame, with the original normalization, 45 ms attack, and 260 ms release.
+The analyser outputs are unconnected: they read the streams without creating
+another speaker-output branch. The analysis context opens after playback signals
+`playing`, using the microphone capture sample rate.
 
-Echo cancellation, noise suppression, and automatic gain control remain enabled
-on every platform. iOS 27 has a reported WebKit regression in simultaneous
-echo-cancelled capture and playback
-([326286](https://bugs.webkit.org/show_bug.cgi?id=326286)). This is an investigation
-lead, not a verified diagnosis or reason to disable communication features.
-Any further workaround needs a local iPhone listening check before publication;
-desktop emulation cannot validate its audio quality.
+Mobile devices temporarily skip waveform analysis entirely, including creation
+of the analysis AudioContext. This includes iPhones, iPads (also in desktop mode),
+and Android devices. Device detection is independent of viewport width, so a
+narrow desktop window retains desktop waveform analysis. The Entity remains
+visible with its resting effects and Luna activity; its voice rings do not react
+to speech on mobile. A real iPhone listening test with no analysis context was
+completely clear after earlier analyser-enabled calls crackled. Mobile waveform
+analysis can be revisited separately and must pass an iPhone listening check
+before publication. Desktop emulation cannot validate mobile audio quality.
 
-The staging header Aria panel includes an Audio diagnostic section directly below
-its introduction. Open `https://aria.shaneholloman.dev/`; no query parameter is
-required. Diagnostic panels can scroll on short mobile viewports, with scrollbars
-hidden. Locally, opt in at `http://localhost:3000/?aria-audio-test=1`. Diagnostics
-remain disabled on the production CV, including when that query parameter is
-present. During one live call, the diagnostic can
-suspend and resume only the analysis AudioContext. Rings freeze while suspended;
-the WebRTC connection, playback element, capture stream, and microphone processing
-are untouched. A separate checkbox starts the next call without creating an
-analysis context at all, for a direct-playback baseline. It is locked for the
-duration of that call. This is an isolation test, not a replacement animation or audio fix.
-Once-per-second WebRTC measurements record packet loss, concealment, jitter-buffer
-counters, and samples inserted to slow playback, where the browser supports them.
-These measurements never drive the rings. Reports remain in the browser until
-manually copied, omit network addresses and device identifiers, and contain no
-audio, transcripts, SDP, or credentials. Unsupported metrics remain unavailable.
+Playback remains in a separate audio element in the document body, including
+during hero-only conversations. During a call the Entity uses full opacity;
+its resting gray and hover treatment remain separate. Echo cancellation, noise
+suppression, and automatic gain control remain enabled on every platform.
+Audio diagnostics are hidden on normal visits to both deployed sites. Explicitly
+append `?aria-audio-test=1` to a local, NAS preview, or production URL to show the
+test controls in the header Aria panel. Reports remain in the browser and exclude
+audio, transcripts, credentials, and network addresses. This opt-in does not
+bypass the mobile waveform fallback; mobile calls still create no analysis
+AudioContext. Desktop diagnostic controls can suspend analysis or skip it for
+the next call without changing the live connection or microphone processing.
 
 Aria uses your existing **ChatGPT subscription login**, read by the local service
 from Codex's auth store. Sign in or refresh that login with `codex login`.

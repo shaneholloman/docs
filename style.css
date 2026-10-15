@@ -20,14 +20,14 @@
   --cv-ink: rgb(var(--gray-900));
   --cv-muted: rgb(var(--gray-400));
   --aria-rest-color: var(--cv-muted);
-  --cv-accent: rgb(var(--primary));
+  --cv-accent: var(--cv-ink);
   --cv-line: rgb(var(--gray-200));
 }
 .dark {
   --cv-paper: rgb(var(--background-dark));
   --cv-ink: rgb(var(--gray-100));
   --cv-muted: rgb(var(--gray-400));
-  --cv-accent: rgb(var(--primary-light));
+  --cv-accent: var(--cv-ink);
   --cv-line: rgb(var(--gray-800));
   --aria-rest-color: var(--cv-muted);
 }
@@ -269,7 +269,7 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .cv a:focus-visible { outline: 2px solid var(--cv-accent); outline-offset: 6px; border-radius: 2px; }
 .cv-skip { position: fixed; left: 16px; top: -100px; padding: 8px 16px; background: var(--cv-paper); z-index: 100; }
 .cv-skip:focus { top: 12px; }
-.cv-hero { --cv-period-color: var(--cv-accent); border-bottom: 1px solid var(--cv-line); transition: --cv-period-color 4s ease; }
+.cv-hero { --cv-period-color: #34d399; border-bottom: 1px solid var(--cv-line); transition: --cv-period-color 4s ease; }
 .cv-hero:has(.cv-aria-hero) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 40px; }
 .cv-hero:has(.cv-aria-hero) > h1, .cv-hero:has(.cv-aria-hero) > .cv-intro { grid-column: 1; }
 .cv-aria-hero { grid-column: 2; grid-row: 1 / 3; align-self: start; position: relative; left: -8px; width: 160px; height: 160px; border: 0; padding: 0; background: transparent; -webkit-tap-highlight-color: transparent; transition: opacity .5s ease, filter .5s ease, transform .5s ease, --aria-hover-light .5s ease, --aria-dot-hover .4s ease; opacity: .7; filter: drop-shadow(0 0 0 transparent); pointer-events: none; }

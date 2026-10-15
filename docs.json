@@ -6,7 +6,7 @@
   "logo": "/favicon.svg",
   "favicon": "/favicon.svg",
   "icons": { "library": "lucide" },
-  "colors": { "primary": "#34d399", "light": "#34d399", "dark": "#34d399" },
+  "colors": { "primary": "#737373", "light": "#d4d4d4", "dark": "#737373" },
   "fonts": {
     "heading": { "family": "Montserrat", "weight": 900 },
     "body": { "family": "Roboto", "weight": 400 }

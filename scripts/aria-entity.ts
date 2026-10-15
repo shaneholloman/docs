@@ -21,19 +21,6 @@ const entityColors = [
   '#22d3ee'
 ] as const;
 
-export function initializeSiteAccent() {
-  const root = document.documentElement;
-  const color = entityColors[Math.floor(Math.random() * entityColors.length)]!;
-  const channels = [1, 3, 5].map((offset) => Number.parseInt(color.slice(offset, offset + 2), 16));
-  root.style.setProperty('--cv-accent', color);
-  root.style.setProperty('--cv-visit-accent', color);
-  root.style.setProperty('--primary-light', channels.join(' '));
-  // Retain the darker primary tone used by the existing hover treatment.
-  const primary = channels.map((channel) => Math.round(channel * 0.75)).join(' ');
-  root.style.setProperty('--primary', primary);
-  root.style.setProperty('--primary-dark', primary);
-}
-
 export function createAriaEntity() {
   const marks = new Set<SVGSVGElement>();
   let context: AudioContext | undefined;
@@ -201,9 +188,8 @@ export function bindAriaEntityHover(button: HTMLButtonElement, svg: SVGSVGElemen
 export function cycleHeroDot(hero: HTMLElement) {
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let previous = entityColors.findIndex(
-    (color) => color === document.documentElement.style.getPropertyValue('--cv-visit-accent')
-  );
+  let previous = Math.floor(Math.random() * entityColors.length);
+  hero.style.setProperty('--cv-period-color', entityColors[previous]!);
   function pause() {
     clearTimeout(timer);
     timer = undefined;

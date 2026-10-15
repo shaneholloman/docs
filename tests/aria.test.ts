@@ -316,3 +316,126 @@ test('voice and typed follow-ups recover only the matching anonymous visitor his
   assert.doesNotMatch(status, /visitorId|history|Tell me about his time/);
   await post(`/session/${second.id}/end`, {});
 });
+
+test('forgetting clears the visitor across active calls and blocks late replies from restoring memory', async (t) => {
+  const memory = createVisitorStore(':memory:');
+  const visitorId = randomUUID(),
+    other = randomUUID();
+  memory.connected(other);
+  memory.append(other, 'user', 'Keep this unrelated visitor');
+  const inputs: VoiceInput[] = [],
+    pending: AskInput[] = [],
+    delivered: string[][] = [],
+    closed: number[] = [];
+  const late = Promise.withResolvers<string>();
+  const { base, post } = await fixture(t, {
+    memory,
+    ask: async (input) => {
+      pending.push(input);
+      return late.promise;
+    },
+    voiceConnect: async (input) => {
+      const index = inputs.push(input) - 1;
+      delivered[index] = [];
+      closed[index] = 0;
+      return {
+        answerSdp: 'v=0\r\n',
+        sessionId: `provider-${index}`,
+        deliver: (_id, text) => delivered[index].push(text),
+        speak: () => assert.fail('Deleted typed reply must not be spoken'),
+        close: () => closed[index]++
+      };
+    }
+  });
+  const first = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n', visitorId })).json()
+  );
+  const second = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n', visitorId })).json()
+  );
+  inputs[0].onEvent({ type: 'aria.user.turn.done', transcript: 'Please clear my transcript' });
+  const firstEvents = (await fetch(`${base}/session/${first.id}/events`)).text();
+  const secondEvents = (await fetch(`${base}/session/${second.id}/events`)).text();
+  const lookup = inputs[0].onDelegation('pending', 'Look up a project');
+  const typed = await post(
+    '/ask',
+    { prompt: 'Another pending question', visitorId, sessionId: first.id },
+    { Accept: 'text/event-stream' }
+  );
+  // Response headers arrive before the asynchronous lookup has completed.
+  while (pending.length < 2) await Bun.sleep(1);
+  const tool = '<voice_tool>{"name":"delete_visitor_memory","arguments":{}}</voice_tool>';
+  await inputs[0].onDelegation('forget', tool);
+  assert.equal(memory.read(visitorId), undefined);
+  assert.equal(memory.read(other)?.history[0].content?.[0].text, 'Keep this unrelated visitor');
+  assert.deepEqual(closed, [0, 1]);
+  assert.ok(pending.every((input) => input.signal?.aborted));
+  assert.ok(pending.every((input) => input.history?.length === 0));
+  assert.equal(JSON.parse(delivered[0][0]).status, 'cleared');
+  assert.match(
+    JSON.parse(delivered[0][0]).message,
+    /Yeah, I'm happy to clear this session out for you/
+  );
+  await inputs[0].onDelegation('duplicate', tool);
+  assert.equal(JSON.parse(delivered[0][1]).status, 'already_cleared');
+  assert.equal(
+    (await post('/ask', { prompt: 'Too late', visitorId, sessionId: first.id })).status,
+    404
+  );
+  late.resolve('Late answer that must never be saved');
+  await lookup;
+  assert.doesNotMatch(await typed.text(), /aria.answer/);
+  inputs[0].onEvent({ type: 'aria.user.turn.done', transcript: 'Late user transcript' });
+  inputs[0].onEvent({
+    type: 'aria.caption',
+    role: 'assistant',
+    delta: 'Cleared now.',
+    timestamp: 1
+  });
+  inputs[0].onEvent({ type: 'output_audio_buffer.started' });
+  inputs[0].onEvent({ type: 'output_audio_buffer.stopped' });
+  const content = await firstEvents;
+  assert.match(content, /aria.forgotten/);
+  assert.match(content, /"reason":"forgotten"/);
+  assert.doesNotMatch(content, /Late user transcript|Cleared now/);
+  assert.match(await secondEvents, /"reason":"forgotten"/);
+  assert.deepEqual(closed, [1, 1]);
+  assert.equal(memory.read(visitorId), undefined);
+  assert.equal(delivered[0].length, 2);
+  assert.equal(memory.read(other)?.sessions, 1);
+});
+
+test('a failed deletion does not claim success or end the visitor conversation', async (t) => {
+  const memory = createVisitorStore(':memory:');
+  memory.forget = () => {
+    throw new Error('Database unavailable');
+  };
+  let input: VoiceInput | undefined;
+  const delivered: string[] = [];
+  let closed = 0;
+  const { post } = await fixture(t, {
+    memory,
+    voiceConnect: async (value) => {
+      input = value;
+      return {
+        answerSdp: 'v=0\r\n',
+        sessionId: 'provider',
+        deliver: (_id, text) => delivered.push(text),
+        speak: () => {},
+        close: () => closed++
+      };
+    }
+  });
+  const visitorId = randomUUID();
+  const session = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n', visitorId })).json()
+  );
+  await input!.onDelegation(
+    'forget',
+    '<voice_tool>{"name":"delete_visitor_memory","arguments":{}}</voice_tool>'
+  );
+  assert.match(delivered[0], /error/);
+  assert.equal(closed, 0);
+  assert.ok(memory.read(visitorId));
+  await post(`/session/${session.id}/end`, {});
+});

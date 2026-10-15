@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { AriaEvent } from '../shared/aria-contracts.ts';
 
 const toolCallSchema = z.strictObject({
-  name: z.literal('end_conversation'),
+  name: z.enum(['end_conversation', 'delete_visitor_memory']),
   arguments: z.strictObject({})
 });
 
@@ -38,8 +38,11 @@ export function createConversationEnding(
     get pending() {
       return pending;
     },
-    begin() {
-      if (pending || closed) return false;
+    begin(restart = false) {
+      if ((pending && !restart) || closed) return false;
+      clearTimeout(drain);
+      clearTimeout(deadline);
+      outputStarted = false;
       pending = true;
       deadline = setTimeout(complete, timeoutMilliseconds);
       return true;

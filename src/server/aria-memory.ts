@@ -96,6 +96,10 @@ export function createVisitorStore(
   return {
     read,
     append,
+    forget(id: string) {
+      db.query('DELETE FROM visitors WHERE id = ?').run(key(id));
+      db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    },
     profile(id: string, profile?: VisitorProfile) {
       if (!profile) return;
       const time = now();

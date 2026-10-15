@@ -192,15 +192,26 @@ bypass the mobile waveform fallback; mobile calls still create no analysis
 AudioContext. Desktop diagnostic controls can suspend analysis or skip it for
 the next call without changing the live connection or microphone processing.
 
-Aria's voice agent has one application control tool, `end_conversation`, using
-the same strict client-delegation envelope as the native Aria app. Its prompt
-limits this to an explicit goodbye or request to end, not an ordinary thank-you,
+Aria's voice agent has two application control tools using the same strict
+client-delegation envelope as the native Aria app. `end_conversation` is limited
+to an explicit goodbye or request to end, not an ordinary thank-you,
 a quoted example, or a follow-up question. The tool ends only the caller's voice
 session. It waits for farewell output and playback completion, with a short
 WebRTC drain allowance for the subscription transport's turn-complete event.
 A 15-second fallback prevents a missing completion event from leaving the call
 open. The browser releases its microphone and closes the conversation panel;
 the CV stays open. Luna retains only its approved knowledge lookup tools.
+
+`delete_visitor_memory` accepts no arguments and can clear only the caller's
+anonymous visitor record. An explicit request to forget or delete their saved
+history removes the transcript, technical profile and session statistics from
+SQLite, clears loaded histories and replay buffers, and cancels outstanding
+lookups and typed replies. Active calls sharing that visitor ID are also cleared.
+Late callbacks cannot resave the deleted record. The requesting call stays open
+for Aria to say, "Yeah, I'm happy to clear this session out for you. It's cleared
+now," then ends. The browser clears its visible transcript and stored ID; the
+next conversation uses a new anonymous ID. This deletes application-held data;
+it does not request deletion from OpenAI or erase external backups.
 
 Anonymous continuity uses a random UUID in browser local storage (`aria.visitorId`),
 saved after a successful conversation. It identifies that browser, not a verified
@@ -210,6 +221,9 @@ identities; a shared browser can recall another person's recent questions.
 Bun's native `bun:sqlite` stores memory in persistent `data/memory/visitors.sqlite`
 (or `ARIA_MEMORY_DB`). There is no ORM or external database service. WAL mode,
 FULL synchronous writes, prepared statements and transactions protect durability.
+Completed text turns write directly to SQLite, without a browser transcript queue.
+Voice playback uses direct WebRTC and does not wait for database writes. Secure
+delete and a WAL checkpoint truncate deleted content in the active database.
 Visitor keys are hashed in the database. Records expire after 30 inactive days,
 retain at most 16 text turns of 6,000 characters each, and are capped at 1,000
 visitors. Expiry runs at startup, hourly, and when sessions begin. Completed
@@ -299,7 +313,8 @@ Microphone access begins only after starting a conversation. Mute disables
 its audio track. Ending the conversation or leaving the page releases microphone
 capture and playback. Closing a panel-started conversation also ends it; closing
 the panel during a hero-started call returns to voice-only mode. A conversation ends after five
-minutes. Session context stays in memory; the service does not save transcripts.
+minutes. Live session context stays in memory; bounded text transcripts persist
+in SQLite for returning visitors as described above.
 It binds to loopback and accepts local Mintlify origins. The NAS runtime also
 accepts the live CV and its configured HTTPS service origin through the gateway.
 

@@ -61,6 +61,8 @@ interface Session {
   visitorId?: string;
   startedAt?: number;
   transcripts: { user: string; assistant: string };
+  forgotten?: boolean;
+  lookups: Set<AbortController>;
 }
 interface ServerOptions {
   knowledge?: () => Promise<KnowledgeMaterial>;
@@ -85,7 +87,7 @@ export function createAriaServer({
   )
 }: ServerOptions = {}) {
   const sessions = new Map<string, Session>();
-  const activeRequests = new Set<AbortController>();
+  const activeRequests = new Map<AbortController, { visitorId?: string; sessionId?: string }>();
   let requestCount = 0;
   let windowStart = Date.now();
   const json = (res: ServerResponse, code: number, value: unknown) => {
@@ -98,7 +100,7 @@ export function createAriaServer({
     if (session.events.length > 30) session.events.shift();
     for (const client of session.clients) client.write(`data: ${JSON.stringify(event)}\n\n`);
   };
-  const end = (session: Session, reason?: 'completed') => {
+  const end = (session: Session, reason?: 'completed' | 'forgotten') => {
     if (session.closed) return;
     emit(session, { type: 'aria.closed', ...(reason ? { reason } : {}) });
     session.closed = true;
@@ -227,10 +229,13 @@ export function createAriaServer({
           return;
         }
         const abort = new AbortController();
-        activeRequests.add(abort);
+        activeRequests.set(abort, { visitorId: data.visitorId, sessionId: data.sessionId });
         res.on('close', () => abort.abort());
         const session = data.sessionId ? sessions.get(data.sessionId) : undefined;
-        if (data.sessionId && (!session || session.visitorId !== data.visitorId)) {
+        if (
+          data.sessionId &&
+          (!session || session.forgotten || session.visitorId !== data.visitorId)
+        ) {
           activeRequests.delete(abort);
           json(res, 404, { error: 'This conversation is unavailable.' });
           return;
@@ -305,12 +310,15 @@ export function createAriaServer({
         history: previous?.history || [],
         visitorId: data.visitorId,
         transcripts: { user: '', assistant: '' },
+        lookups: new Set(),
         closed: false,
         delegations: new Set()
       };
       sessions.set(session.id, session);
       session.timer = setTimeout(() => end(session), sessionMilliseconds);
-      session.ending = createConversationEnding(() => end(session, 'completed'));
+      session.ending = createConversationEnding(() =>
+        end(session, session.forgotten ? 'forgotten' : 'completed')
+      );
       res.on('close', () => {
         if (!res.writableFinished) end(session);
       });
@@ -324,6 +332,10 @@ export function createAriaServer({
           signal: session.abort.signal,
           onEvent: (event) => {
             if (session.closed) return;
+            if (session.forgotten) {
+              session.ending?.observe(event);
+              return;
+            }
             if (event.type === 'aria.caption')
               session.transcripts[event.role] = (
                 session.transcripts[event.role] + event.delta
@@ -336,11 +348,48 @@ export function createAriaServer({
             emit(session, event);
             session.ending?.observe(event);
           },
-          onClose: () => end(session),
+          onClose: () => end(session, session.forgotten ? 'forgotten' : undefined),
           onDelegation: async (id, prompt) => {
             if (session.closed) return;
             try {
-              if (parseConversationTool(prompt)) {
+              const tool = parseConversationTool(prompt);
+              if (tool?.name === 'delete_visitor_memory') {
+                if (session.forgotten) {
+                  session.connection?.deliver(id, '{"status":"already_cleared"}');
+                  return;
+                }
+                const visitorId = session.visitorId;
+                if (visitorId) memory.forget(visitorId);
+                for (const affected of sessions.values()) {
+                  if (affected !== session && (!visitorId || affected.visitorId !== visitorId))
+                    continue;
+                  affected.forgotten = true;
+                  affected.visitorId = undefined;
+                  affected.history.length = 0;
+                  affected.transcripts = { user: '', assistant: '' };
+                  affected.events.length = 0;
+                  for (const lookup of affected.lookups) lookup.abort();
+                  emit(affected, { type: 'aria.forgotten' });
+                  if (affected !== session) end(affected, 'forgotten');
+                }
+                for (const [abort, owner] of activeRequests)
+                  if (
+                    (visitorId && owner.visitorId === visitorId) ||
+                    owner.sessionId === session.id
+                  )
+                    abort.abort();
+                session.ending?.begin(true);
+                emit(session, { type: 'aria.ending' });
+                session.connection?.deliver(
+                  id,
+                  JSON.stringify({
+                    status: 'cleared',
+                    message: "Yeah, I'm happy to clear this session out for you. It's cleared now."
+                  })
+                );
+                return;
+              }
+              if (tool?.name === 'end_conversation') {
                 const started = session.ending?.begin();
                 if (started) emit(session, { type: 'aria.ending' });
                 session.connection?.deliver(
@@ -362,6 +411,8 @@ export function createAriaServer({
               return;
             }
             session.delegations.add(id);
+            const lookup = new AbortController();
+            session.lookups.add(lookup);
             emit(session, { type: 'aria.thinking' });
             try {
               const answer = await ask({
@@ -369,9 +420,10 @@ export function createAriaServer({
                 knowledge: material.text,
                 lookup: material.lookup,
                 history: session.history,
-                signal: session.abort.signal,
+                signal: AbortSignal.any([session.abort.signal, lookup.signal]),
                 onActivity: (magnitude) => {
-                  if (!session.closed) emit(session, { type: 'aria.activity', magnitude });
+                  if (!session.closed && !session.forgotten)
+                    emit(session, { type: 'aria.activity', magnitude });
                 }
               });
               if (!session.closed && !session.ending?.pending) {
@@ -389,6 +441,7 @@ export function createAriaServer({
                 });
               }
             } finally {
+              session.lookups.delete(lookup);
               session.delegations.delete(id);
               if (!session.closed && !session.ending?.pending && session.delegations.size === 0)
                 emit(session, { type: 'aria.ready' });
@@ -400,7 +453,7 @@ export function createAriaServer({
           throw new Error('Voice connection cancelled.');
         }
         session.startedAt = Date.now();
-        if (data.visitorId) memory.connected(data.visitorId, data.profile);
+        if (session.visitorId) memory.connected(session.visitorId, data.profile);
         json(res, 200, { id: session.id, sdp: session.connection.answerSdp });
       } catch (error) {
         end(session);
@@ -420,7 +473,7 @@ export function createAriaServer({
   });
   server.on('close', () => {
     for (const session of sessions.values()) end(session);
-    for (const abort of activeRequests) abort.abort();
+    for (const abort of activeRequests.keys()) abort.abort();
     memory.close();
   });
   return server;

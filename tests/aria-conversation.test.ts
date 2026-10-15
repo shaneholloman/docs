@@ -4,12 +4,18 @@ import {
   parseConversationTool
 } from '../src/server/aria-conversation.ts';
 
-test('voice control accepts only the declared end-conversation tool with no arguments', () => {
+test('voice control accepts only the declared conversation tools with no arguments', () => {
   expect(parseConversationTool('Tell me about Shane.')).toBeUndefined();
   expect(
     parseConversationTool('<voice_tool>{"name":"end_conversation","arguments":{}}</voice_tool>')
   ).toEqual({ name: 'end_conversation', arguments: {} });
+  expect(
+    parseConversationTool(
+      '<voice_tool>{"name":"delete_visitor_memory","arguments":{}}</voice_tool>'
+    )
+  ).toEqual({ name: 'delete_visitor_memory', arguments: {} });
   for (const input of [
+    '<voice_tool>{"name":"delete_visitor_memory","arguments":{"visitorId":"someone-else"}}</voice_tool>',
     '<voice_tool>{"name":"shutdown","arguments":{}}</voice_tool>',
     '<voice_tool>{"name":"end_conversation","arguments":{"session":"other"}}</voice_tool>',
     '<voice_tool>{"name":"end_conversation","arguments":{},"extra":true}</voice_tool>',
@@ -83,6 +89,24 @@ test('a completed spoken transcript can finish the farewell when caption events 
   });
   ending.begin();
   ending.observe({ type: 'aria.turn.done', transcript: 'Thanks for visiting. Goodbye!' });
+  await Bun.sleep(20);
+  expect(finished).toBe(1);
+});
+
+test('clearing memory restarts farewell timing instead of reusing a pending goodbye', async () => {
+  let finished = 0;
+  const ending = createConversationEnding(() => finished++, {
+    drainMilliseconds: 5,
+    timeoutMilliseconds: 1000
+  });
+  ending.begin();
+  ending.observe({ type: 'output_audio_buffer.started' });
+  ending.observe({ type: 'output_audio_buffer.stopped' });
+  expect(ending.begin(true)).toBe(true);
+  await Bun.sleep(20);
+  expect(finished).toBe(0);
+  ending.observe({ type: 'output_audio_buffer.started' });
+  ending.observe({ type: 'output_audio_buffer.stopped' });
   await Bun.sleep(20);
   expect(finished).toBe(1);
 });

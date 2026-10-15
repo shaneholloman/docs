@@ -76,7 +76,10 @@ export const ariaEventSchema = z.discriminatedUnion('type', [
     timestamp: z.number()
   }),
   z.object({ type: z.literal('aria.error'), message: z.string() }),
-  z.object({ type: z.literal('aria.closed'), reason: z.literal('completed').optional() }),
+  z.object({
+    type: z.literal('aria.closed'),
+    reason: z.enum(['completed', 'forgotten']).optional()
+  }),
   z.object({
     type: z.enum(['aria.turn.done', 'aria.user.turn.done']),
     transcript: z.string().max(12000).optional()
@@ -86,6 +89,7 @@ export const ariaEventSchema = z.discriminatedUnion('type', [
       'aria.thinking',
       'aria.ready',
       'aria.ending',
+      'aria.forgotten',
       'session.started',
       'session.closed',
       'output_audio_buffer.started',

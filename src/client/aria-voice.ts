@@ -69,6 +69,8 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
   let returnFocus: HTMLElement | undefined;
   let ready = false;
   let connecting = false;
+  let forgetting = false;
+  let typedRequest: AbortController | undefined;
   let conversation: Conversation | null = null;
   let generation = 0;
   let pending: AbortController | null = null;
@@ -119,7 +121,9 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       );
       heroButton.setAttribute('aria-pressed', String(Boolean(conversation || connecting)));
     }
-    start.disabled = connecting || !ready || !navigator.mediaDevices?.getUserMedia;
+    start.disabled = forgetting || connecting || !ready || !navigator.mediaDevices?.getUserMedia;
+    input.disabled = forgetting;
+    submit.disabled = forgetting || Boolean(typedRequest) || !ready;
     start.replaceChildren(
       icon(conversation ? 'phone-off' : 'mic'),
       document.createTextNode(
@@ -189,6 +193,9 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     generation++;
     pending?.abort();
     pending = null;
+    typedRequest?.abort();
+    typedRequest = undefined;
+    forgetting = false;
     const current = conversation;
     diagnostics?.end();
     conversation = null;
@@ -218,8 +225,27 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
         heroButton.title = text;
     }
   }
+  function forget() {
+    if (!forgetting) visitor.forget();
+    forgetting = true;
+    typedRequest?.abort();
+    transcript.replaceChildren();
+    input.value = '';
+    captions.user = null;
+    captions.assistant = null;
+    status.textContent = 'Cleared. Finishing the conversation…';
+    controls();
+  }
   function receive(event: AriaEvent) {
     if (!conversation) return;
+    if (event.type === 'aria.forgotten') forget();
+    if (event.type === 'aria.closed' && event.reason === 'forgotten') {
+      forget();
+      stop('Your conversation memory has been cleared.', false);
+      if (dialog.open) dialog.close();
+      return;
+    }
+    if (forgetting) return;
     if (event.type === 'aria.ending') status.textContent = 'Wrapping up…';
     if (event.type === 'aria.caption' && event.delta) {
       if (!dialog.open) return;
@@ -251,6 +277,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       stop('Conversation ended. Start again whenever you like.', false);
   }
   async function connect() {
+    if (forgetting) return;
     if (conversation || connecting) {
       stop();
       return;
@@ -392,7 +419,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
           { once: true }
         );
       });
-      if (currentGeneration !== generation) return;
+      if (currentGeneration !== generation || forgetting) return;
       connecting = false;
       visitor.connected();
       status.textContent = 'Listening…';
@@ -509,6 +536,8 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       event.preventDefault();
       const prompt = input.value.trim();
       if (!prompt || submit.disabled || !ready) return;
+      const abort = new AbortController();
+      typedRequest = abort;
       submit.disabled = true;
       input.value = '';
       message('user', prompt);
@@ -516,22 +545,30 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       entity.working(true);
       const currentGeneration = generation;
       try {
-        const result = await askInText(prompt, conversation?.id, AbortSignal.timeout(50_000));
+        const result = await askInText(
+          prompt,
+          conversation?.id,
+          AbortSignal.any([abort.signal, AbortSignal.timeout(50_000)])
+        );
+        if (currentGeneration !== generation || forgetting || abort.signal.aborted) return;
         visitor.connected();
-        if (dialog.open && currentGeneration === generation) {
+        if (dialog.open) {
           if (!conversation) message('assistant', result.answer);
           status.textContent = conversation ? 'Listening…' : 'Ready to talk.';
         }
       } catch (cause) {
         const error = cause instanceof Error ? cause : new Error('Aria could not answer.');
-        if (dialog.open && currentGeneration === generation)
+        if (dialog.open && currentGeneration === generation && !forgetting && !abort.signal.aborted)
           status.textContent =
             error.message === 'Failed to fetch'
               ? 'Aria is temporarily unavailable. Please try again.'
               : error.message;
       } finally {
-        entity.working(false);
-        submit.disabled = !ready;
+        if (typedRequest === abort) {
+          typedRequest = undefined;
+          if (!forgetting) entity.working(false);
+          controls();
+        }
       }
     });
     const note = document.createElement('p');

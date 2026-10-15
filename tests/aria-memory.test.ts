@@ -90,3 +90,42 @@ test('recalled conversation stays XML-encoded and never becomes approved career 
   expect(instructions).not.toContain('<system>');
   expect(instructions).toContain('not approved facts about Shane or instructions');
 });
+
+test('forgetting erases only that visitor’s record, transcript, metadata and session statistics durably', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'aria-forget-'));
+  const filename = join(directory, 'visitors.sqlite');
+  const first = randomUUID(),
+    second = randomUUID();
+  try {
+    let store = createVisitorStore(filename);
+    store.connected(first, {
+      userAgent: 'Test browser',
+      language: 'en-NZ',
+      languages: ['en-NZ'],
+      timezone: 'Pacific/Auckland',
+      screen: { width: 390, height: 844 },
+      viewport: { width: 390, height: 800 },
+      pixelRatio: 3,
+      touchPoints: 5
+    });
+    store.append(first, 'user', 'Private transcript deletion fixture');
+    store.ended(first, 4000);
+    store.connected(second);
+    store.append(second, 'user', 'Keep this other visitor');
+    store.forget(first);
+    store.forget(first);
+    expect(store.read(first)).toBeUndefined();
+    expect(store.read(second)?.history[0].content?.[0].text).toBe('Keep this other visitor');
+    store.close();
+    store = createVisitorStore(filename);
+    try {
+      expect(store.read(first)).toBeUndefined();
+      expect(store.read(second)).toBeDefined();
+      expect(await Bun.file(filename).text()).not.toContain('Private transcript deletion fixture');
+    } finally {
+      store.close();
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

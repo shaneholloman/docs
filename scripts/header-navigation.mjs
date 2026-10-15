@@ -4,7 +4,7 @@ import {
 } from 'lucide';
 import { setupCvSearch } from './cv-search.mjs';
 import { updateBodyIcons } from './body-icons.mjs';
-import { setupAria } from './aria-voice.mjs';
+import { setupAria } from './aria-voice.ts';
 
 const icons = {
   'https://github.com/shaneholloman': ['code-xml', CodeXml],

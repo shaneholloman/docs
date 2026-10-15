@@ -3,7 +3,9 @@
 !bun.lock
 !scripts/
 !scripts/*.mjs
+!scripts/*.ts
 scripts/*.test.mjs
+scripts/*.test.ts
 !index.mdx
 !style.css
 !aria.svg

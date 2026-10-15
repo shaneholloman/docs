@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { subscriptionReader } from './aria-auth.mjs';
+import { subscriptionReader } from './aria-auth.ts';
 
 test('dedicated NAS login refreshes once, persists rotation privately and survives a new process', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'aria-auth-'));

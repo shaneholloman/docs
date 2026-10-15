@@ -5,9 +5,9 @@ import http from 'node:http';
 import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createAriaServer } from './aria-server.mjs';
-import { loadKnowledge } from './aria-knowledge.mjs';
-import { chunks } from './aria-openai.mjs';
+import { createAriaServer } from './aria-server.ts';
+import { loadKnowledge } from './aria-knowledge.ts';
+import { chunks } from './aria-openai.ts';
 
 test('knowledge includes the complete CV and supplemental text without reading unrelated files', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'aria-knowledge-'));
@@ -19,9 +19,10 @@ test('knowledge includes the complete CV and supplemental text without reading u
     await writeFile(join(extra, 'credentials.json'), 'DO NOT INCLUDE');
     const material = await loadKnowledge(cv, extra);
     assert.equal(material.count, 2);
-    assert.match(material.text, /Education\nMusic studies/);
-    assert.match(material.text, /8i & Head of AI/);
-    assert.match(material.text, /not displayed on the site/);
+    assert.match(material.text, /## Education\n\nMusic studies/);
+    assert.match(material.text, /8i &amp; Head of AI/);
+    assert.doesNotMatch(material.text, /not displayed on the site/);
+    assert.match(material.lookup.execute('read_knowledge', { source: 'projects.md' }), /not displayed on the site/);
     assert.doesNotMatch(material.text, /DO NOT INCLUDE|title: CV|<h2>/);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
@@ -75,6 +76,22 @@ test('typed questions reach the knowledge-backed agent and reject oversized or m
   assert.equal(received.knowledge, 'Shane is IT Manager at 8i.');
   assert.equal((await post('/ask', { prompt: 'x'.repeat(2001) })).status, 400);
   assert.equal((await post('/session', { sdp: 'not SDP' })).status, 400);
+});
+
+test('typed event streams carry real background activity before the answer and finish on error', async t => {
+  const { post } = await fixture(t, { ask: async input => {
+    input.onActivity?.(12);
+    if (input.prompt === 'Fail') throw new Error('Lookup failed.');
+    return 'Shane worked at 8i.';
+  } });
+  const response = await post('/ask', { prompt: 'Where did Shane work?' }, { Accept: 'text/event-stream' });
+  assert.equal(response.headers.get('content-type'), 'text/event-stream');
+  const content = await response.text();
+  assert.ok(content.indexOf('aria.activity') < content.indexOf('aria.answer'));
+  assert.match(content, /"magnitude":12/);
+  assert.match(content, /Shane worked at 8i/);
+  const failed = await post('/ask', { prompt: 'Fail' }, { Accept: 'text/event-stream' });
+  assert.match(await failed.text(), /"type":"aria.error","message":"Lookup failed\."/);
 });
 
 test('ending a conversation closes its provider connection and invalidates the session', async t => {

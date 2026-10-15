@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { once } from 'node:events';
 import { WebSocket, WebSocketServer } from 'ws';
-import { createPreviewServer } from './aria-preview.mjs';
+import { createPreviewServer } from './aria-preview.ts';
 
 test('preview protects both upstreams, strips Access credentials and streams events and WebSockets', async t => {
   let calls = 0;

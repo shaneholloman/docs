@@ -12,4 +12,4 @@ COPY index.mdx style.css aria.svg favicon.svg aria-preview.js ./
 USER bun
 ENV NODE_ENV=production
 EXPOSE 8792
-CMD ["bun", "scripts/aria-runtime.mjs"]
+CMD ["bun", "scripts/aria-runtime.ts"]

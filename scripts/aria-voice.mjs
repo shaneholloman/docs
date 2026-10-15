@@ -194,7 +194,7 @@ export function setupAria({ icon }) {
       finally { submit.disabled = !ready; }
     });
     const note = document.createElement('p'); note.className = 'cv-aria-note';
-    note.textContent = 'AI voice guide • your microphone is active only during a conversation.';
+    note.textContent = 'Mic on only during conversations.';
     dialog.append(header, description, actions, settings, status, transcript, form, note);
     document.body.append(dialog);
     dialog.addEventListener('close', () => { stop(); returnFocus?.focus({ preventScroll: true }); });

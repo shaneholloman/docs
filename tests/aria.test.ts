@@ -32,7 +32,7 @@ test('knowledge includes the complete CV and supplemental text without reading u
     assert.match(material.text, /8i &amp; Head of AI/);
     assert.doesNotMatch(material.text, /not displayed on the site/);
     assert.match(
-      material.lookup.execute('read_knowledge', { source: 'projects.md' }),
+      material.lookup.execute('KnowledgeQuery', { mode: 'page', page: 'projects.md' }),
       /not displayed on the site/
     );
     assert.doesNotMatch(material.text, /DO NOT INCLUDE|title: CV|<h2>/);
@@ -235,7 +235,7 @@ test('the voice end tool signs off, closes only its own session and bypasses kno
     '<voice_tool>{"name":"shutdown","arguments":{}}</voice_tool>'
   );
   assert.match(delivered[0][0], /Invalid or unavailable/);
-  const tool = '<voice_tool>{"name":"end_conversation","arguments":{}}</voice_tool>';
+  const tool = '<voice_tool>{"name":"ConversationEnd","arguments":{}}</voice_tool>';
   await inputs[0].onDelegation('finish', tool);
   await inputs[0].onDelegation('duplicate', tool);
   await inputs[0].onDelegation('late-lookup', 'Look up another project while closing.');
@@ -376,7 +376,7 @@ test('forgetting clears the visitor across active calls and blocks late replies 
   );
   // Response headers arrive before the asynchronous lookup has completed.
   while (pending.length < 2) await Bun.sleep(1);
-  const tool = '<voice_tool>{"name":"delete_visitor_memory","arguments":{}}</voice_tool>';
+  const tool = '<voice_tool>{"name":"VisitorMemoryDelete","arguments":{}}</voice_tool>';
   await inputs[0].onDelegation('forget', tool);
   assert.equal(memory.read(visitorId), undefined);
   assert.equal(memory.read(other)?.history[0].content?.[0].text, 'Keep this unrelated visitor');
@@ -444,7 +444,7 @@ test('a failed deletion does not claim success or end the visitor conversation',
   );
   await input!.onDelegation(
     'forget',
-    '<voice_tool>{"name":"delete_visitor_memory","arguments":{}}</voice_tool>'
+    '<voice_tool>{"name":"VisitorMemoryDelete","arguments":{}}</voice_tool>'
   );
   assert.match(delivered[0], /error/);
   assert.equal(closed, 0);

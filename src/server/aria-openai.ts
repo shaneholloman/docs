@@ -97,7 +97,7 @@ export async function askLuna(
         model: reasoningModel,
         store: false,
         stream: true,
-        instructions: reasoningInstructions(knowledge),
+        instructions: reasoningInstructions(knowledge, lookup?.instructions),
         input,
         tools: lookup?.tools || [],
         reasoning: { effort: 'low' },
@@ -163,7 +163,7 @@ export async function askLuna(
         onTool?.(call.name, args);
       } catch {
         result =
-          '<tool_error>Invalid tool arguments or unknown approved source. Use only the provided tools and indexed source IDs.</tool_error>';
+          '<tool_error>Invalid arguments or unknown approved tool. Use the supplied tool contracts and returned page slugs or references.</tool_error>';
       }
       input.push({ type: 'function_call_output', call_id: call.call_id, output: result });
     }

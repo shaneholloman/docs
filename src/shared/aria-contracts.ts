@@ -42,8 +42,7 @@ export const sessionRequestSchema = z.strictObject({
   visitorId: visitorIdSchema.optional(),
   profile: visitorProfileSchema.optional()
 });
-export const searchArgumentsSchema = z.strictObject({ query: z.string().trim().min(1).max(300) });
-export const readArgumentsSchema = z.strictObject({ source: z.string().min(1).max(255) });
+
 export const subscriptionSchema = z
   .object({
     auth_mode: z.string().optional(),
@@ -154,11 +153,13 @@ export interface FunctionTool {
   type: 'function';
   name: string;
   description: string;
-  strict: true;
+  strict: boolean;
   parameters: Record<string, unknown>;
 }
 export interface KnowledgeLookup {
   tools: FunctionTool[];
+  instructions?: string;
+  sourceCount?: number;
   execute: (name: string, args: unknown) => string;
 }
 export interface KnowledgeMaterial {

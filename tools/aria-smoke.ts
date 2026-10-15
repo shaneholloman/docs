@@ -18,32 +18,32 @@ try {
   let readBackground = false;
   const answer = await askLuna({
     prompt:
-      'Use search_knowledge to find the supplemental career background, then read_knowledge to read that supplemental source. Where did Shane lead IT for a 90-person startup, and how does that differ from his Cello role?',
+      'Use KnowledgeQuery with mode search to find the supplemental career background, then mode page to read that source. Where did Shane lead IT for a 90-person startup, and how does that differ from his Cello role?',
     knowledge: material.text,
     lookup: material.lookup,
     onTool(name, args) {
       tools.push(name);
       if (
-        name === 'read_knowledge' &&
+        name === 'KnowledgeQuery' &&
         typeof args === 'object' &&
         args !== null &&
-        'source' in args &&
-        args.source === 'career-background.md'
+        'page' in args &&
+        args.page === 'career-background.md'
       )
         readBackground = true;
       console.log(`Executed ${name}`);
     }
   });
   assert.ok(
-    tools.includes('search_knowledge') && tools.includes('read_knowledge'),
-    'Both knowledge tools must execute.'
+    tools.filter((name) => name === 'KnowledgeQuery').length >= 2,
+    'Knowledge discovery and page reading must execute.'
   );
   assert.ok(
     readBackground && /8i/i.test(answer) && /Head of AI/i.test(answer),
     'Luna must retrieve the supplemental career source and answer correctly.'
   );
   console.log(
-    'Live subscription retrieval passed. Both tools executed and Luna read the supplemental career source.'
+    'Live subscription retrieval passed. Both retrieval modes executed and Luna read the supplemental career source.'
   );
 } finally {
   await rm(directory, { recursive: true, force: true });

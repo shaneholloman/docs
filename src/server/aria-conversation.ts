@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { AriaEvent } from '../shared/aria-contracts.ts';
 
 const toolCallSchema = z.strictObject({
-  name: z.enum(['end_conversation', 'delete_visitor_memory']),
+  name: z.enum(['ConversationEnd', 'VisitorMemoryDelete']),
   arguments: z.strictObject({})
 });
 

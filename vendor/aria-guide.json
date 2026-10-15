@@ -1,0 +1,11 @@
+{
+  "revision": "468da3b0da3b64dbf4c1d3081edeb37e912690f5",
+  "dirty": true,
+  "version": "0.0.0-468da3b0.84c2c77c2568bc8c",
+  "filename": "aria-guide-0.0.0-468da3b0.84c2c77c2568bc8c.tgz",
+  "pages": 180,
+  "files": {
+    "index.js": "8c3af2094f4594b2a49d68faef6d5fb67c8a780ab80ef458ddbdf90927ce3e96",
+    "guide.sqlite": "4b56f6a97ba81e39417a1b5cc8a4078552537257fc05151b08ed70b1b122400d"
+  }
+}

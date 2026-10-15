@@ -43,20 +43,25 @@ test('frontloaded resume retains Markdown structure and XML encodes content; ext
     expect(material.text).toContain('<source id="project.md" title="Project background" />');
     expect(material.text).not.toContain('silver fern');
     expect(material.text).not.toContain('OUTSIDE-APPROVED-DIRECTORY');
-    const found = material.lookup.execute('search_knowledge', { query: 'lookup verification' });
-    expect(found).toContain('source="project.md"');
+    const found = material.lookup.execute('KnowledgeQuery', {
+      mode: 'search',
+      query: 'lookup verification'
+    });
+    expect(JSON.parse(found).readback.items[0].slug).toBe('project.md');
     expect(found).toContain('silver fern');
-    const read = material.lookup.execute('read_knowledge', { source: 'project.md' });
+    const read = material.lookup.execute('KnowledgeQuery', { mode: 'page', page: 'project.md' });
     expect(read).toContain('&lt;/approved_knowledge&gt;');
     expect(read).not.toContain('<instruction>');
-    expect(material.lookup.execute('read_knowledge', { source: 'resume' })).toContain(
+    expect(material.lookup.execute('KnowledgeQuery', { mode: 'page', page: 'resume' })).toContain(
       '## Education'
     );
     for (const source of ['../secret.txt', 'linked.md', 'nested/private.md', '/etc/passwd']) {
-      expect(() => material.lookup.execute('read_knowledge', { source })).toThrow();
+      expect(
+        JSON.parse(material.lookup.execute('KnowledgeQuery', { mode: 'page', page: source })).ok
+      ).toBe(false);
     }
     expect(() =>
-      material.lookup.execute('search_knowledge', { query: 'x', path: '/etc' })
+      material.lookup.execute('KnowledgeQuery', { mode: 'search', query: 'x', path: '/etc' })
     ).toThrow();
     expect(() => material.lookup.execute('shell', { command: 'ls' })).toThrow();
   });
@@ -68,6 +73,40 @@ test('resume conversion retains links and separates inline metadata', () => {
       '<h1>Shane <span>Holloman<span>.</span></span></h1><p>Head of AI <span>Building solutions</span></p><a href="https://example.com">Credential</a>'
     )
   ).toBe('# Shane Holloman.\n\nHead of AI Building solutions\n\n[Credential](https://example.com)');
+});
+
+test('KnowledgeQuery pages discovery and rejects a cursor reused for another query', async () => {
+  await fixture(async (material) => {
+    const first = JSON.parse(
+      material.lookup.execute('KnowledgeQuery', { mode: 'overview', page_size: 1 })
+    );
+    expect(first.readback.items[0].slug).toBe('resume');
+    expect(first.readback.page.hasNext).toBe(true);
+    const next = JSON.parse(
+      material.lookup.execute('KnowledgeQuery', {
+        mode: 'overview',
+        page_size: 1,
+        page_cursor: first.readback.page.nextCursor
+      })
+    );
+    expect(next.readback.items[0].slug).toBe('project.md');
+    expect(next.readback.page.hasNext).toBe(false);
+    expect(() =>
+      material.lookup.execute('KnowledgeQuery', {
+        mode: 'search',
+        query: 'project',
+        page_cursor: first.readback.page.nextCursor
+      })
+    ).toThrow();
+    const metadata = JSON.parse(
+      material.lookup.execute('KnowledgeQuery', {
+        mode: 'page',
+        page: 'project.md',
+        include_content: false
+      })
+    );
+    expect(metadata.page.content).toBeUndefined();
+  });
 });
 
 const completed = (output: ResponseItem[]) =>
@@ -118,8 +157,8 @@ test('Luna executes search then read and replays matching outputs and encrypted 
             {
               type: 'function_call',
               call_id: 'search-1',
-              name: 'search_knowledge',
-              arguments: '{"query":"lookup verification"}'
+              name: 'KnowledgeQuery',
+              arguments: '{"mode":"search","query":"lookup verification"}'
             }
           ]);
         if (bodies.length === 2)
@@ -127,8 +166,8 @@ test('Luna executes search then read and replays matching outputs and encrypted 
             {
               type: 'function_call',
               call_id: 'read-1',
-              name: 'read_knowledge',
-              arguments: '{"source":"project.md"}'
+              name: 'KnowledgeQuery',
+              arguments: '{"mode":"page","page":"project.md"}'
             }
           ]);
         return completed([
@@ -152,12 +191,9 @@ test('Luna executes search then read and replays matching outputs and encrypted 
       subscription
     );
     expect(answer).toContain('silver fern');
-    expect(calls).toEqual(['search_knowledge', 'read_knowledge']);
+    expect(calls).toEqual(['KnowledgeQuery', 'KnowledgeQuery']);
     expect(bodies[0].instructions).not.toContain('silver fern');
-    expect(bodies[0].tools.map((tool) => tool.name)).toEqual([
-      'search_knowledge',
-      'read_knowledge'
-    ]);
+    expect(bodies[0].tools.map((tool) => tool.name)).toEqual(['KnowledgeQuery']);
     expect(bodies[1].input).toContainEqual({
       type: 'reasoning',
       encrypted_content: 'opaque-test-reasoning',
@@ -185,8 +221,8 @@ test('Luna limits repeated tool calls and honors cancellation between rounds', a
           {
             type: 'function_call',
             call_id: `call-${count}`,
-            name: 'read_knowledge',
-            arguments: '{"source":"resume"}'
+            name: 'KnowledgeQuery',
+            arguments: '{"mode":"page","page":"resume"}'
           }
         ]);
       },

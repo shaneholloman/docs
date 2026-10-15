@@ -6,10 +6,12 @@ import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
 import { buildBrowser } from './build.ts';
 import { previewFiles, syncPreview } from './files.ts';
+import { prepareKnowledge } from './guide-assets.ts';
 
 const mint = Bun.which('mint');
 if (!mint) throw new Error('Install the Mintlify CLI with bun add --global mint.');
 await buildBrowser();
+await prepareKnowledge();
 const source = process.cwd();
 const preview = await mkdtemp(join(tmpdir(), 'shane-cv-preview-'));
 await syncPreview(source, preview);

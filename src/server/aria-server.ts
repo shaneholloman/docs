@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { loadKnowledge } from './aria-knowledge.ts';
 import { createConversationEnding, parseConversationTool } from './aria-conversation.ts';
 import { createVisitorStore } from './aria-memory.ts';
+import { openAriaGuide } from './aria-guide.ts';
 import type { VisitorStore } from './aria-memory.ts';
 import {
   askLuna,
@@ -73,11 +74,7 @@ interface ServerOptions {
   memory?: VisitorStore;
 }
 export function createAriaServer({
-  knowledge = () =>
-    loadKnowledge(
-      join(root, 'index.mdx'),
-      process.env.ARIA_KNOWLEDGE_DIR || join(root, 'data/knowledge')
-    ),
+  knowledge: providedKnowledge,
   subscription = readSubscription,
   ask = askLuna,
   voiceConnect = connectVoice,
@@ -86,6 +83,20 @@ export function createAriaServer({
     process.env.ARIA_MEMORY_DB || join(root, 'data/memory/visitors.sqlite')
   )
 }: ServerOptions = {}) {
+  let guide: ReturnType<typeof openAriaGuide> | undefined;
+  const knowledge =
+    providedKnowledge ||
+    (() => {
+      guide ||= openAriaGuide(
+        process.env.ARIA_GUIDE_DIR || join(root, 'dist/knowledge/Aria-guide')
+      );
+      return loadKnowledge(
+        join(root, 'index.mdx'),
+        process.env.ARIA_KNOWLEDGE_DIR || join(root, 'data/knowledge'),
+        guide.lookup,
+        join(root, 'dist/knowledge')
+      );
+    });
   const sessions = new Map<string, Session>();
   const activeRequests = new Map<AbortController, { visitorId?: string; sessionId?: string }>();
   let requestCount = 0;
@@ -354,7 +365,7 @@ export function createAriaServer({
             if (session.closed) return;
             try {
               const tool = parseConversationTool(prompt);
-              if (tool?.name === 'delete_visitor_memory') {
+              if (tool?.name === 'VisitorMemoryDelete') {
                 if (session.forgotten) {
                   session.connection?.deliver(id, '{"status":"already_cleared"}');
                   return;
@@ -390,7 +401,7 @@ export function createAriaServer({
                 );
                 return;
               }
-              if (tool?.name === 'end_conversation') {
+              if (tool?.name === 'ConversationEnd') {
                 const started = session.ending?.begin();
                 if (started) emit(session, { type: 'aria.ending' });
                 session.connection?.deliver(
@@ -478,6 +489,7 @@ export function createAriaServer({
     for (const session of sessions.values()) end(session);
     for (const abort of activeRequests.keys()) abort.abort();
     memory.close();
+    guide?.close();
   });
   return server;
 }

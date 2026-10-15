@@ -4,6 +4,8 @@ tools/
 tests/
 dist/
 data/
+knowledge/
+vendor/
 .mintlify/
 .github/
 node_modules/

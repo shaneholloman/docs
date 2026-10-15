@@ -7,19 +7,17 @@ import {
 test('voice control accepts only the declared conversation tools with no arguments', () => {
   expect(parseConversationTool('Tell me about Shane.')).toBeUndefined();
   expect(
-    parseConversationTool('<voice_tool>{"name":"end_conversation","arguments":{}}</voice_tool>')
-  ).toEqual({ name: 'end_conversation', arguments: {} });
+    parseConversationTool('<voice_tool>{"name":"ConversationEnd","arguments":{}}</voice_tool>')
+  ).toEqual({ name: 'ConversationEnd', arguments: {} });
   expect(
-    parseConversationTool(
-      '<voice_tool>{"name":"delete_visitor_memory","arguments":{}}</voice_tool>'
-    )
-  ).toEqual({ name: 'delete_visitor_memory', arguments: {} });
+    parseConversationTool('<voice_tool>{"name":"VisitorMemoryDelete","arguments":{}}</voice_tool>')
+  ).toEqual({ name: 'VisitorMemoryDelete', arguments: {} });
   for (const input of [
-    '<voice_tool>{"name":"delete_visitor_memory","arguments":{"visitorId":"someone-else"}}</voice_tool>',
+    '<voice_tool>{"name":"VisitorMemoryDelete","arguments":{"visitorId":"someone-else"}}</voice_tool>',
     '<voice_tool>{"name":"shutdown","arguments":{}}</voice_tool>',
-    '<voice_tool>{"name":"end_conversation","arguments":{"session":"other"}}</voice_tool>',
-    '<voice_tool>{"name":"end_conversation","arguments":{},"extra":true}</voice_tool>',
-    '<voice_tool>{"name":"end_conversation","arguments":{}}',
+    '<voice_tool>{"name":"ConversationEnd","arguments":{"session":"other"}}</voice_tool>',
+    '<voice_tool>{"name":"ConversationEnd","arguments":{},"extra":true}</voice_tool>',
+    '<voice_tool>{"name":"ConversationEnd","arguments":{}}',
     '<voice_tool>not JSON</voice_tool>'
   ])
     expect(() => parseConversationTool(input)).toThrow();

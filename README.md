@@ -193,12 +193,12 @@ AudioContext. Desktop diagnostic controls can suspend analysis or skip it for
 the next call without changing the live connection or microphone processing.
 
 Aria's voice agent has two application control tools using the same strict
-client-delegation envelope as the native Aria app. `end_conversation` is limited
+client-delegation envelope as the native Aria app. `ConversationEnd` is limited
 to an explicit goodbye or request to end, not an ordinary thank-you,
 a quoted example, or a follow-up question. Aria invokes it silently and gives one
 natural social farewell after confirmation, without a task acknowledgment or
 cleanup narration. Ordinary farewells preserve visitor memory; deletion wording
-belongs exclusively to explicit requests handled by `delete_visitor_memory`.
+belongs exclusively to explicit requests handled by `VisitorMemoryDelete`.
 The tool ends only the caller's voice
 session. It waits for farewell output and playback completion, with a short
 WebRTC drain allowance for the subscription transport's turn-complete event.
@@ -206,7 +206,7 @@ A 15-second fallback prevents a missing completion event from leaving the call
 open. The browser releases its microphone and closes the conversation panel;
 the CV stays open. Luna retains only its approved knowledge lookup tools.
 
-`delete_visitor_memory` accepts no arguments and can clear only the caller's
+`VisitorMemoryDelete` accepts no arguments and can clear only the caller's
 anonymous visitor record. An explicit request to forget or delete their saved
 history removes the transcript, technical profile and session statistics from
 SQLite, clears loaded histories and replay buffers, and cancels outstanding
@@ -277,8 +277,9 @@ resume to maintain. Add approved `.md` and `.txt` background files to ignored
 do not enter the browser bundle. Only add material Aria may disclose to visitors.
 Approved knowledge is exclusively about Shane's biography, career and projects.
 Do not put deployment notes, hosting hardware, network topology, authentication,
-or application internals in this directory. Neither agent receives runtime
-configuration or operational documentation. For questions outside Shane's
+or application internals in this directory. Neither agent receives this website’s runtime configuration or operational
+documentation. The Aria platform guide documents Shane’s product and is in scope.
+For questions outside Shane's
 background, both explain their limited informational access naturally: they
 have his resume and one directory of approved background information. They do
 not frame this as a refusal or imply they are withholding secrets. Infrastructure
@@ -289,13 +290,18 @@ answers routine resume questions directly. It delegates supplemental lookups
 or deeper analysis to Luna. Luna receives the resume, source index, question,
 and up to eight prior delegated Q&A pairs, plus these read-only tools:
 
-- `search_knowledge({ query })`: returns matching approved source IDs and excerpts.
-- `read_knowledge({ source })`: returns one complete approved source. `resume`
-  rereads the full resume; other IDs come from the source index or search.
+- `KnowledgeQuery`: reads Shane’s background using `overview`, `search`, and `page`.
+  The `resume` page rereads the CV; other page slugs come from discovery. Results
+  use bounded next/previous cursors, and `include_content: false` returns metadata.
+- `AriaQuery`: exposes the platform’s native `GuideQuery` under an explicit product
+  name. It supports `overview`, `section`, `search`, `page`, and `reference`, with
+  native relationships and stable-cursor readback. It describes the Aria platform;
+  its documented operations are not executable by this website agent.
 
-Tools operate on an allowlisted in-memory snapshot. They cannot browse, run
-commands, read arbitrary paths, follow symlinks, recurse into directories, write
-files, or access credentials. Tool rounds share a 45-second deadline, with at
+KnowledgeQuery operates on an allowlisted in-memory snapshot. AriaQuery uses
+the packaged native Guide query engine and a read-only Bun SQLite FTS5 index.
+Both tools are read-only. They cannot browse, run commands, read arbitrary paths,
+follow symlinks or access credentials. Tool rounds share a 45-second deadline, with at
 most five model calls and twelve tool executions per answer. Encrypted reasoning
 and function-call IDs are replayed across the stateless model calls.
 
@@ -305,13 +311,39 @@ index.mdx -> Markdown -> XML resume + supplemental index
                     Aria voice                 Luna reasoning
                     at session start           on each delegated question
                          |                         |
-                  direct CV answer       search_knowledge / read_knowledge
+                  direct CV answer       KnowledgeQuery / AriaQuery
                          |                         |
                          +<----- grounded answer --+
 
 Browser <========== direct WebRTC audio ==========> OpenAI Live
 Local Bun service: auth, context, delegation, lookup and captions
 ```
+
+The platform’s public corpus, query implementation, builtin schema and navigation
+prompt ship as the generated dependency in `vendor/`. `vendor/aria-guide.json`
+records the source revision, working-tree status and artifact checksums. The
+package snapshots current authored content without modifying the Aria repository.
+Normal builds and NAS execution need no Aria checkout. Update it explicitly:
+
+```sh
+bun run guide:sync /path/to/aria
+bun run build
+```
+
+The sync command uses Aria’s public Guide projection, preserving authored bodies
+and omitting developer provenance. It packages the native query engine and injects
+Aria’s version through its supported build define. The release copies the SQLite
+index and manifest to `dist/knowledge/Aria-guide/`; Docker ships them on the normal
+NAS volume. Guide content and indexing are built on the Mac. Querying uses native
+FTS5/BM25 through `bun:sqlite`, with the database independent of visitor memory.
+An artifact checksum is verified before opening it. Feature availability is an
+exported documentation snapshot, not live evidence about the website or visitor.
+
+Versioned personal background in `knowledge/` also ships in the release. Mutable
+NAS additions remain in `data/knowledge/`. Both feed the same approved knowledge
+silo. Broad platform questions delegate to Luna, which retrieves an introduction
+before explaining deeper architecture. `bun tools/guide-smoke.ts` explicitly tests
+real local subscription retrieval without a microphone or visitor transcripts.
 
 New voice sessions capture a fresh knowledge snapshot. Typed requests reload
 the files; delegated voice questions use their conversation's original snapshot.
@@ -334,7 +366,7 @@ Zod validation, function-call replay, cancellation, and lookup limits. Use
 `bun run build` before a release. Changes remain local until
 explicitly pushed to Mintlify and deployed to the NAS.
 
-`bun run test:live` explicitly exercises both knowledge tools through the local
+`bun run test:live` explicitly exercises KnowledgeQuery search and page modes through the local
 subscription login. It uses a temporary supplemental source containing approved
 career facts, checks Luna searches and reads that source, and removes it afterward.
 It calls OpenAI and consumes subscription usage; offline tests do not.
@@ -345,7 +377,7 @@ Publishing changes involves two destinations: push the checked-in browser bundle
 and CV to GitHub for Mintlify, and deploy a locally built image for backend changes.
 The NAS does not automatically deploy from GitHub. The image includes `index.mdx`,
 so CV edits also need a refreshed image to update Aria's resume context.
-Supplemental knowledge lives outside the image in persistent `data/knowledge/`;
+Mutable supplemental knowledge lives outside the image in persistent `data/knowledge/`;
 adding approved Markdown or text files there needs no image build. New voice
 sessions and typed requests pick up those files; existing voice sessions retain
 their original knowledge snapshot. The persistent subscription login is preserved

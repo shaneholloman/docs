@@ -36,10 +36,23 @@ const gatewayModule = (await import(
 const server = serverModule.createAriaServer({
   memory: createVisitorStore(':memory:'),
   subscription: async () => ({ token: 'offline-release-fixture' }),
-  ask: async ({ knowledge }) => {
+  ask: async ({ knowledge, lookup }) => {
     assert.match(knowledge, /Shane Holloman/);
     assert.match(knowledge, /Cello Group/);
     assert.match(knowledge, /8i/);
+    assert.deepEqual(
+      lookup?.tools.map((tool) => tool.name),
+      ['KnowledgeQuery', 'AriaQuery']
+    );
+    const guide = JSON.parse(
+      lookup!.execute('AriaQuery', {
+        mode: 'reference',
+        reference_kind: 'primitive',
+        reference_id: 'voice'
+      })
+    );
+    assert.equal(guide.page.slug, 'primitive-voice');
+    assert.match(guide.page.content, /WebRTC/);
     return 'Shane leads AI at Cello Group and previously led IT at 8i.';
   }
 });

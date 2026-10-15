@@ -5,6 +5,8 @@
     "": {
       "name": "shane-holloman-cv",
       "dependencies": {
+        "@shane/aria-guide": "./vendor/aria-guide-0.0.0-468da3b0.84c2c77c2568bc8c.tgz",
+        "@shane/aria-guide": "./vendor/aria-guide-0.0.0-468da3b0.62c2c955.4b56f6a9.tgz",
         "lucide": "1.57.0",
         "ws": "8.22.0",
         "zod": "4.6.7",
@@ -94,6 +96,8 @@
     "@oxlint/binding-win32-ia32-msvc": ["@oxlint/binding-win32-ia32-msvc@1.88.0", "", { "os": "win32", "cpu": "ia32" }, "sha512-MA6iOw//amleaz2mVMsZrA7NHlEexjTrhIxSMFCXQi6IUuQO+3Od00GZhr2iCYw6RFzMW36jkKK/WHBXMsoQAw=="],
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.88.0", "", { "os": "win32", "cpu": "x64" }, "sha512-3Sz6rVWe8Dy+ufsXurFN1GX2dX43F/lQMSLelK9gFjiba7nHvLlqlhR5cHlWVnCpSqUY1hN9pyCX9XToe6ve6g=="],
+
+    "@shane/aria-guide": ["@shane/aria-guide@./vendor/aria-guide-0.0.0-468da3b0.84c2c77c2568bc8c.tgz", {}, "sha512-WNz89mnrKw0gEgQX4/Qxg1bNlyl71b+G5+N3Eloj0tWLGnf9wr0m8Z85fQNmsZoNO2vCpzIyjS43kwhaI/sIpw=="],
 
     "@types/bun": ["@types/bun@1.4.3", "", { "dependencies": { "bun-types": "1.4.3" } }, "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw=="],
 

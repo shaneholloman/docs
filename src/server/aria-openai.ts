@@ -2,7 +2,13 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import WebSocket from 'ws';
-import { reasoningInstructions, voiceInstructions, voiceGreeting } from './aria-knowledge.ts';
+import {
+  reasoningInstructions,
+  voiceInstructions,
+  voiceGreeting,
+  conversationControlInstructions
+} from './aria-knowledge.ts';
+import { conversationTools, toolCallSchema } from './aria-conversation.ts';
 import { subscriptionReader } from './aria-auth.ts';
 import {
   voiceNames,
@@ -76,7 +82,8 @@ export async function askLuna(
     lookup,
     onTool,
     onActivity,
-    onUsage
+    onUsage,
+    conversationControl
   }: AskInput,
   request: typeof fetch = fetch,
   subscription = readSubscription
@@ -87,9 +94,16 @@ export async function askLuna(
   const auth = await subscription();
   deadline.throwIfAborted();
   const input: ResponseItem[] = [
-    ...history.slice(-16),
+    ...(conversationControl ? conversationControl.history : history).slice(-16),
     { type: 'message', role: 'user', content: [{ type: 'input_text', text: prompt }] }
   ];
+  // A recalled confirmation must never authorize an action in a new call.
+  // Restore older context only after a read-only lookup is chosen, with controls
+  // disabled for the rest of that request. This adds no model round.
+  let controlsAvailable = Boolean(conversationControl);
+  const recalled = conversationControl
+    ? history.slice(0, Math.max(0, history.length - conversationControl.history.length))
+    : [];
   let toolCount = 0;
   for (let round = 0; round < 5; round++) {
     const response = await request(`${base}/responses`, {
@@ -100,12 +114,21 @@ export async function askLuna(
         store: false,
         stream: true,
         instructions:
-          reasoningInstructions(knowledge, lookup?.instructions) +
+          reasoningInstructions(
+            knowledge,
+            lookup?.instructions,
+            controlsAvailable && conversationControl
+              ? conversationControlInstructions(conversationControl.history)
+              : ''
+          ) +
           (round === 4
             ? '\nAnswer now from the evidence already retrieved. Do not request more tools. If the evidence is insufficient, explain exactly what remains unknown.'
             : ''),
         input,
-        tools: round === 4 ? [] : lookup?.tools || [],
+        tools:
+          round === 4
+            ? []
+            : [...(lookup?.tools || []), ...(controlsAvailable ? conversationTools : [])],
         ...(round === 4 ? { tool_choice: 'none' } : {}),
         prompt_cache_key: sessionId,
         reasoning: { effort: 'low' },
@@ -166,8 +189,31 @@ export async function askLuna(
       if (!answer.trim()) throw new Error('Luna did not return an answer. Please try again.');
       return answer.trim().replaceAll('\u2014', ' • ');
     }
+    const controlCalls = calls.filter((call) =>
+      conversationTools.some((tool) => tool.name === call.name)
+    );
+    if (controlCalls.length) {
+      // Validate the entire response before any side effect. Never guess a control
+      // from natural language or run a mixed/multiple-control response.
+      if (!controlsAvailable || !conversationControl || calls.length !== 1)
+        throw new Error(
+          'Aria could not safely resolve the conversation control. Please clarify your request.'
+        );
+      const call = controlCalls[0];
+      const control = toolCallSchema.parse({
+        name: call.name,
+        arguments: JSON.parse(call.arguments || 'null')
+      });
+      deadline.throwIfAborted();
+      onTool?.(control.name, control.arguments);
+      return conversationControl.execute(control.name);
+    }
     // Stateless Responses calls must replay the model's output, including encrypted
     // reasoning, together with each matching function_call_output.
+    if (controlsAvailable) {
+      controlsAvailable = false;
+      input.unshift(...recalled);
+    }
     input.push(...output);
     for (const call of calls) {
       deadline.throwIfAborted();

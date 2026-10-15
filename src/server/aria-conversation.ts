@@ -1,10 +1,29 @@
 import { z } from 'zod';
-import type { AriaEvent } from '../shared/aria-contracts.ts';
+import type { AriaEvent, FunctionTool } from '../shared/aria-contracts.ts';
 
-const toolCallSchema = z.strictObject({
+export const toolCallSchema = z.strictObject({
   name: z.enum(['ConversationEnd', 'VisitorMemoryDelete']),
   arguments: z.strictObject({})
 });
+
+export const conversationTools: FunctionTool[] = [
+  {
+    type: 'function',
+    name: 'ConversationEnd',
+    description:
+      'End only the current caller’s voice call after a clear goodbye or request to end. Keeps saved history. Do not use for ordinary thanks or an ambiguous clear/reset request.',
+    strict: true,
+    parameters: { type: 'object', properties: {}, required: [], additionalProperties: false }
+  },
+  {
+    type: 'function',
+    name: 'VisitorMemoryDelete',
+    description:
+      'Delete the current caller’s saved transcript, visitor record and memory, then end the call. Use only for an explicit deletion request or confirmation in this current call. An ambiguous clear/reset request needs clarification first. Cannot target other visitors.',
+    strict: true,
+    parameters: { type: 'object', properties: {}, required: [], additionalProperties: false }
+  }
+];
 
 /** Match the client-delegation tool envelope used by the native Aria app. */
 export function parseConversationTool(prompt: string) {

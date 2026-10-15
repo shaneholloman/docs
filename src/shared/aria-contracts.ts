@@ -185,6 +185,7 @@ export interface KnowledgeMaterial {
   count: number;
   lookup: KnowledgeLookup;
 }
+export type ConversationControlName = 'ConversationEnd' | 'VisitorMemoryDelete';
 export interface AskInput {
   prompt: string;
   knowledge: string;
@@ -192,6 +193,10 @@ export interface AskInput {
   signal?: AbortSignal;
   sessionId?: string;
   lookup?: KnowledgeLookup;
+  conversationControl?: {
+    history: ResponseItem[];
+    execute: (name: ConversationControlName) => string;
+  };
   onTool?: (name: string, args: unknown) => void;
   onActivity?: (magnitude: number) => void;
   onUsage?: (usage: { inputTokens?: number; cachedTokens?: number; outputTokens?: number }) => void;

@@ -152,6 +152,172 @@ const completed = (output: ResponseItem[]) =>
   );
 const subscription = async () => ({ token: 'test-only-token' });
 
+test('voice confirmations expose real scoped controls and return the executed result without another model round', async () => {
+  let requests = 0;
+  const executed: string[] = [];
+  const request: typeof fetch = Object.assign(
+    async (_url: unknown, init?: RequestInit) => {
+      requests++;
+      const body = JSON.parse(String(init?.body));
+      expect(body.tools.map((tool: { name: string }) => tool.name)).toEqual([
+        'ConversationEnd',
+        'VisitorMemoryDelete'
+      ]);
+      expect(body.instructions).toContain('<current_voice_call>');
+      expect(body.instructions).toContain('clear our saved conversation history and end the call');
+      return completed([
+        { type: 'function_call', call_id: 'clear-1', name: 'VisitorMemoryDelete', arguments: '{}' }
+      ]);
+    },
+    { preconnect: fetch.preconnect }
+  );
+  const answer = await askLuna(
+    {
+      prompt: 'Yes, please',
+      knowledge: '<resume />',
+      conversationControl: {
+        history: [
+          {
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Did you want me to clear our saved conversation history and end the call here?'
+              }
+            ]
+          }
+        ],
+        execute(name) {
+          executed.push(name);
+          return '{"status":"cleared"}';
+        }
+      }
+    },
+    request,
+    subscription
+  );
+  expect(answer).toBe('{"status":"cleared"}');
+  expect(executed).toEqual(['VisitorMemoryDelete']);
+  expect(requests).toBe(1);
+});
+
+test('old-call memory is withheld from control decisions and restored only after controls are disabled', async () => {
+  await fixture(async (material) => {
+    let rounds = 0;
+    const old: ResponseItem = {
+      type: 'message',
+      role: 'assistant',
+      content: [{ type: 'output_text', text: 'OLD-CALL-CONTEXT' }]
+    };
+    const current: ResponseItem = {
+      type: 'message',
+      role: 'user',
+      content: [{ type: 'input_text', text: 'Look up the project' }]
+    };
+    const request: typeof fetch = Object.assign(
+      async (_url: unknown, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body));
+        rounds++;
+        const context = JSON.stringify(body.input);
+        if (rounds === 1) {
+          expect(context).not.toContain('OLD-CALL-CONTEXT');
+          expect(
+            body.tools.some((tool: { name: string }) => tool.name === 'VisitorMemoryDelete')
+          ).toBe(true);
+          return completed([
+            {
+              type: 'function_call',
+              call_id: 'read',
+              name: 'KnowledgeQuery',
+              arguments: '{"mode":"page","page":"project.md"}'
+            }
+          ]);
+        }
+        expect(context).toContain('OLD-CALL-CONTEXT');
+        expect(
+          body.tools.some((tool: { name: string }) => tool.name === 'VisitorMemoryDelete')
+        ).toBe(false);
+        expect(body.instructions).not.toContain('Current voice-call controls are available');
+        return completed([
+          {
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'output_text', text: 'Project details retrieved.' }]
+          }
+        ]);
+      },
+      { preconnect: fetch.preconnect }
+    );
+    expect(
+      await askLuna(
+        {
+          prompt: 'Look up the project',
+          knowledge: material.text,
+          lookup: material.lookup,
+          history: [old, current],
+          conversationControl: {
+            history: [current],
+            execute() {
+              throw new Error('Unexpected control');
+            }
+          }
+        },
+        request,
+        subscription
+      )
+    ).toBe('Project details retrieved.');
+    expect(rounds).toBe(2);
+  });
+});
+
+test('conversation controls reject targeting arguments, mixed calls and execution without a voice capability', async () => {
+  const executed: string[] = [];
+  for (const scenario of [
+    { args: '{"visitorId":"someone-else"}', mixed: false, enabled: true },
+    { args: '{}', mixed: true, enabled: true },
+    { args: '{}', mixed: false, enabled: false }
+  ]) {
+    const request: typeof fetch = Object.assign(
+      async () =>
+        completed([
+          {
+            type: 'function_call',
+            call_id: 'clear',
+            name: 'VisitorMemoryDelete',
+            arguments: scenario.args
+          },
+          ...(scenario.mixed
+            ? [{ type: 'function_call', call_id: 'end', name: 'ConversationEnd', arguments: '{}' }]
+            : [])
+        ]),
+      { preconnect: fetch.preconnect }
+    );
+    await expect(
+      askLuna(
+        {
+          prompt: 'Clear my history',
+          knowledge: '<resume />',
+          ...(scenario.enabled
+            ? {
+                conversationControl: {
+                  history: [],
+                  execute(name: 'ConversationEnd' | 'VisitorMemoryDelete') {
+                    executed.push(name);
+                    return 'Unexpected';
+                  }
+                }
+              }
+            : {})
+        },
+        request,
+        subscription
+      )
+    ).rejects.toThrow();
+  }
+  expect(executed).toEqual([]);
+});
+
 test('Luna parses split CRLF events and UTF-8 characters across stream chunks', async () => {
   const answer = 'Café • 音楽';
   const bytes = new TextEncoder().encode(

@@ -22,7 +22,8 @@ import type {
   VoiceInput,
   VoiceConnection,
   ResponseItem,
-  AriaEvent
+  AriaEvent,
+  ConversationControlName
 } from '../shared/aria-contracts.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
@@ -54,6 +55,7 @@ interface Session {
   clients: Set<ServerResponse>;
   events: AriaEvent[];
   history: ResponseItem[];
+  currentHistory: ResponseItem[];
   closed: boolean;
   delegations: Set<string>;
   timer?: ReturnType<typeof setTimeout>;
@@ -153,13 +155,20 @@ export function createAriaServer({
   const transcript = (session: Session, role: 'user' | 'assistant', text: string) => {
     const value = text.trim().slice(0, 6000);
     if (!value) return;
-    const previous = session.history.at(-1);
+    const previous = session.currentHistory.at(-1);
     if (previous?.role === role && previous.content?.[0]?.text === value) return;
     session.history.push({
       type: 'message',
       role,
       content: [{ type: role === 'user' ? 'input_text' : 'output_text', text: value }]
     });
+    session.currentHistory.push({
+      type: 'message',
+      role,
+      content: [{ type: role === 'user' ? 'input_text' : 'output_text', text: value }]
+    });
+    if (session.currentHistory.length > 16)
+      session.currentHistory.splice(0, session.currentHistory.length - 16);
     if (session.history.length > 16) session.history.splice(0, session.history.length - 16);
     if (session.visitorId) memory.append(session.visitorId, role, value);
   };
@@ -339,6 +348,7 @@ export function createAriaServer({
         clients: new Set(),
         events: [],
         history: previous?.history || [],
+        currentHistory: [],
         visitorId: data.visitorId,
         transcripts: { user: '', assistant: '' },
         lookups: new Set(),
@@ -387,13 +397,11 @@ export function createAriaServer({
           onDelegation: async (id, prompt) => {
             if (session.closed) return;
             observe?.({ phase: 'delegation.received' });
-            try {
-              const tool = parseConversationTool(prompt);
-              if (tool) observe?.({ phase: 'control.requested', tool: tool.name });
-              if (tool?.name === 'VisitorMemoryDelete') {
+            const runControl = (name: ConversationControlName): string => {
+              observe?.({ phase: 'control.requested', tool: name });
+              if (name === 'VisitorMemoryDelete') {
                 if (session.forgotten) {
-                  session.connection?.deliver(id, '{"status":"already_cleared"}');
-                  return;
+                  return '{"status":"already_cleared"}';
                 }
                 const visitorId = session.visitorId;
                 if (visitorId) memory.forget(visitorId);
@@ -403,6 +411,7 @@ export function createAriaServer({
                   affected.forgotten = true;
                   affected.visitorId = undefined;
                   affected.history.length = 0;
+                  affected.currentHistory.length = 0;
                   affected.transcripts = { user: '', assistant: '' };
                   affected.events.length = 0;
                   for (const lookup of affected.lookups) lookup.abort();
@@ -417,27 +426,24 @@ export function createAriaServer({
                     abort.abort();
                 session.ending?.begin(true);
                 emit(session, { type: 'aria.ending' });
-                session.connection?.deliver(
-                  id,
-                  JSON.stringify({
-                    status: 'cleared',
-                    message: "Yeah, I'm happy to clear this session out for you. It's cleared now."
-                  })
-                );
-                return;
+                return JSON.stringify({
+                  status: 'cleared',
+                  message: "Yeah, I'm happy to clear this session out for you. It's cleared now."
+                });
               }
-              if (tool?.name === 'ConversationEnd') {
-                const started = session.ending?.begin();
-                if (started) emit(session, { type: 'aria.ending' });
-                session.connection?.deliver(
-                  id,
-                  JSON.stringify({
-                    status: started ? 'ending' : 'already_ending',
-                    message: started
-                      ? 'Reply with one natural farewell, such as "Thanks for chatting. See you later!" Begin with the farewell itself. Do not acknowledge a task, announce cleanup, or promise any action. The call will close after the farewell.'
-                      : 'A farewell is already underway. Add no further speech or tool calls.'
-                  })
-                );
+              const started = session.ending?.begin();
+              if (started) emit(session, { type: 'aria.ending' });
+              return JSON.stringify({
+                status: started ? 'ending' : 'already_ending',
+                message: started
+                  ? 'Reply with one natural farewell, such as "Thanks for chatting. See you later!" Begin with the farewell itself. Do not acknowledge a task, announce cleanup, or promise any action. The call will close after the farewell.'
+                  : 'A farewell is already underway. Add no further speech or tool calls.'
+              });
+            };
+            try {
+              const tool = parseConversationTool(prompt);
+              if (tool) {
+                session.connection?.deliver(id, runControl(tool.name));
                 return;
               }
             } catch {
@@ -485,6 +491,16 @@ export function createAriaServer({
                 history: session.history,
                 signal: AbortSignal.any([session.abort.signal, lookup.signal]),
                 sessionId: session.id,
+                conversationControl: {
+                  history: [...session.currentHistory],
+                  execute(name) {
+                    if (session.closed || session.abort.signal.aborted)
+                      throw new Error('This voice call has ended.');
+                    const result = runControl(name);
+                    session.connection?.deliver(id, result);
+                    return result;
+                  }
+                },
                 onTool: (tool) => report('lookup.tool', { tool }),
                 onUsage: (usage) => report('lookup.usage', usage),
                 onActivity: (magnitude) => {

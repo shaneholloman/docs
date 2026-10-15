@@ -425,6 +425,51 @@ test('voice and typed follow-ups recover only the matching anonymous visitor his
   await post(`/session/${second.id}/end`, {});
 });
 
+test('a plain voice confirmation reaches the scoped deletion control with current-call context only', async (t) => {
+  const memory = createVisitorStore(':memory:');
+  const visitorId = randomUUID(),
+    other = randomUUID();
+  memory.append(visitorId, 'assistant', 'OLD-CALL-AUTHORIZATION');
+  memory.append(other, 'user', 'Unrelated history');
+  let voice: VoiceInput | undefined;
+  const delivered: string[] = [];
+  const { post } = await fixture(t, {
+    memory,
+    voiceConnect: async (input) => {
+      voice = input;
+      return {
+        answerSdp: 'v=0\r\n',
+        sessionId: 'provider',
+        deliver: (_id, text) => delivered.push(text),
+        speak: () => {},
+        close: () => {}
+      };
+    },
+    ask: async (input) => {
+      assert.equal(input.prompt, 'Yes, please');
+      assert.ok(input.conversationControl);
+      const current = JSON.stringify(input.conversationControl.history);
+      assert.match(current, /clear our saved conversation history/);
+      assert.doesNotMatch(current, /OLD-CALL-AUTHORIZATION/);
+      return input.conversationControl.execute('VisitorMemoryDelete');
+    }
+  });
+  const session = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n', visitorId })).json()
+  );
+  voice!.onEvent({ type: 'aria.user.turn.done', transcript: 'Can you clear this session?' });
+  voice!.onEvent({
+    type: 'aria.turn.done',
+    transcript: 'Did you want me to clear our saved conversation history and end the call here?'
+  });
+  await voice!.onDelegation('confirmed', 'Yes, please');
+  assert.equal(memory.read(visitorId), undefined);
+  assert.equal(memory.read(other)?.history[0].content?.[0].text, 'Unrelated history');
+  assert.equal(delivered.length, 1);
+  assert.equal(JSON.parse(delivered[0]).status, 'cleared');
+  await post(`/session/${session.id}/end`, {});
+});
+
 test('forgetting clears the visitor across active calls and blocks late replies from restoring memory', async (t) => {
   const memory = createVisitorStore(':memory:');
   const visitorId = randomUUID(),

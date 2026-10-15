@@ -192,9 +192,14 @@ bypass the mobile waveform fallback; mobile calls still create no analysis
 AudioContext. Desktop diagnostic controls can suspend analysis or skip it for
 the next call without changing the live connection or microphone processing.
 
-Aria's voice agent has two application control tools using the same strict
-client-delegation envelope as the native Aria app. `ConversationEnd` is limited
-to an explicit goodbye or request to end, not an ordinary thank-you,
+The conversation panel shows a muted Braille spinner while a voice lookup or
+typed answer is pending. It stops on completion, failure or cancellation, pauses
+when the panel or document is hidden, and stays still with reduced motion enabled.
+
+Voice requests delegate through the subscription transport to Luna, which has
+two real function tools scoped to the current call. The application still accepts
+the native Aria app's strict client-delegation envelope for compatibility.
+`ConversationEnd` is limited to an explicit goodbye or request to end, not an ordinary thank-you,
 a quoted example, or a follow-up question. Aria invokes it silently and gives one
 natural social farewell after confirmation, without a task acknowledgment or
 cleanup narration. Ordinary farewells preserve visitor memory; deletion wording
@@ -204,7 +209,24 @@ session. It waits for farewell output and playback completion, with a short
 WebRTC drain allowance for the subscription transport's turn-complete event.
 A 15-second fallback prevents a missing completion event from leaving the call
 open. The browser releases its microphone and closes the conversation panel;
-the CV stays open. Luna retains only its approved knowledge lookup tools.
+the CV stays open. Typed requests retain only Luna’s approved knowledge lookup
+tools; voice delegations also receive the two call-control tools.
+
+Ambiguous requests such as "clear this session" prompt a short clarification
+that explicitly asks about deleting saved conversation history and ending the
+call. Affirmative intent is interpreted in context and in the caller’s language,
+without an exact-phrase trigger. Choosing to end only keeps memory intact.
+Aria can clarify locally; Luna resolves delegated confirmations against a separate
+current-call transcript and calls the appropriate scoped function. Previous-call
+memory is withheld while control tools are available. After a read-only lookup
+is chosen, older context is restored and controls are disabled for that request,
+without an extra model round. These requests never require a
+platform Guide lookup, and the knowledge silo does not remove these controls.
+Mixed control calls and targeting arguments are rejected before any side effect.
+A successful control result returns directly to voice without another model round.
+`bun tools/conversation-smoke.ts` evaluates varied English acknowledgments,
+multilingual assent, negation, ambiguous requests, and old-call context against
+the real subscription model with inert control spies. It changes no visitor data.
 
 `VisitorMemoryDelete` accepts no arguments and can clear only the caller's
 anonymous visitor record. An explicit request to forget or delete their saved

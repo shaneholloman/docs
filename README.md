@@ -192,6 +192,13 @@ bypass the mobile waveform fallback; mobile calls still create no analysis
 AudioContext. Desktop diagnostic controls can suspend analysis or skip it for
 the next call without changing the live connection or microphone processing.
 
+An entity is a conversation participant, including the caller, Aria and Luna.
+The panel labels visible turns as "You:" and "Aria:", with a Lucide user icon
+and the Aria mark respectively. Aria’s answers use the secondary gray token.
+The listening status has a soft 1,200 ms shimmer followed by an 800 ms pause,
+for a two-second cycle. It stays still with reduced motion or forced colors.
+Other statuses do not shimmer.
+
 The conversation panel shows a muted Braille spinner while a voice lookup or
 typed answer is pending. It stops on completion, failure or cancellation, pauses
 when the panel or document is hidden, and stays still with reduced motion enabled.

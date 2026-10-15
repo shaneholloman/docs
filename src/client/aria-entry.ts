@@ -1,4 +1,4 @@
-import { X, Mic, MicOff, PhoneOff, ChevronRight } from 'lucide';
+import { X, Mic, MicOff, PhoneOff, ChevronRight, UserRound } from 'lucide';
 import { renderIcon } from './icons.ts';
 import { setupAria } from './aria-voice.ts';
 import type { AriaIconName } from './aria-voice.ts';
@@ -8,7 +8,8 @@ const definitions: Record<AriaIconName, typeof X> = {
   mic: Mic,
   'mic-off': MicOff,
   'phone-off': PhoneOff,
-  'chevron-right': ChevronRight
+  'chevron-right': ChevronRight,
+  'user-round': UserRound
 };
 const update = setupAria({
   icon: (name) => renderIcon([name, definitions[name]])

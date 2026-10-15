@@ -15,7 +15,7 @@ import {
   bindAriaEntityHover,
   cycleHeroDot
 } from './aria-entity.ts';
-export type AriaIconName = 'x' | 'mic' | 'mic-off' | 'phone-off' | 'chevron-right';
+export type AriaIconName = 'x' | 'mic' | 'mic-off' | 'phone-off' | 'chevron-right' | 'user-round';
 interface Conversation {
   peer: RTCPeerConnection;
   stream: MediaStream;
@@ -95,6 +95,10 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
   let conversation: Conversation | null = null;
   let generation = 0;
   let pending: AbortController | null = null;
+  const setStatus = (text: string) => {
+    statusText.textContent = text;
+    statusText.classList.toggle('cv-aria-listening', text === 'Listening…');
+  };
   const captions: Record<'user' | 'assistant', { copy: HTMLParagraphElement; end: number } | null> =
     { user: null, assistant: null };
   const fitViewport = () => {
@@ -118,8 +122,12 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
   };
   const message = (role: 'user' | 'assistant', text: string) => {
     const item = document.createElement('div');
+    item.dataset.entity = role === 'user' ? 'user' : 'aria';
     const label = document.createElement('strong');
-    label.textContent = role === 'user' ? 'You' : 'Aria';
+    label.append(
+      role === 'user' ? icon('user-round') : mark(),
+      document.createTextNode(role === 'user' ? 'You:' : 'Aria:')
+    );
     const copy = document.createElement('p');
     copy.textContent = text;
     item.append(label, copy);
@@ -241,7 +249,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     captions.user = null;
     captions.assistant = null;
     if (status) {
-      statusText.textContent = text;
+      setStatus(text);
       if (heroFeedback) heroFeedback.textContent = text;
       controls();
       if (heroButton && activation === 'hero' && text !== 'Conversation ended.')
@@ -259,7 +267,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     input.value = '';
     captions.user = null;
     captions.assistant = null;
-    statusText.textContent = 'Cleared. Finishing the conversation…';
+    setStatus('Cleared. Finishing the conversation…');
     controls();
   }
   function receive(event: AriaEvent) {
@@ -275,7 +283,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     if (event.type === 'aria.ending') {
       voiceWaiting = false;
       updateWaiting();
-      statusText.textContent = 'Wrapping up…';
+      setStatus('Wrapping up…');
     }
     if (event.type === 'aria.caption' && event.delta) {
       if (!dialog.open) return;
@@ -286,13 +294,12 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
         current.end = event.timestamp;
       } else captions[role] = { copy: message(role, event.delta), end: event.timestamp };
       transcript.scrollTop = transcript.scrollHeight;
-      if (!voiceWaiting)
-        statusText.textContent = role === 'assistant' ? 'Aria is speaking…' : 'Listening…';
+      if (!voiceWaiting) setStatus(role === 'assistant' ? 'Aria is speaking…' : 'Listening…');
     }
     if (event.type === 'aria.thinking') {
       voiceWaiting = true;
       updateWaiting();
-      statusText.textContent = 'Looking that up…';
+      setStatus('Looking that up…');
       entity.working(true);
     }
     if (event.type === 'aria.activity') entity.pulse(event.magnitude);
@@ -302,16 +309,16 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       entity.working(false);
     }
     if (!voiceWaiting && ['aria.ready', 'output_audio_buffer.stopped'].includes(event.type))
-      statusText.textContent = conversation.muted ? 'Microphone muted.' : 'Listening…';
+      setStatus(conversation.muted ? 'Microphone muted.' : 'Listening…');
     if (!voiceWaiting && event.type === 'output_audio_buffer.started')
-      statusText.textContent = 'Aria is speaking…';
+      setStatus('Aria is speaking…');
     if (!voiceWaiting && event.type === 'aria.turn.done')
-      statusText.textContent = conversation.muted ? 'Microphone muted.' : 'Listening…';
+      setStatus(conversation.muted ? 'Microphone muted.' : 'Listening…');
     if (event.type === 'aria.lookup.error') {
       voiceWaiting = false;
       updateWaiting();
       entity.working(false);
-      statusText.textContent = event.message;
+      setStatus(event.message);
       if (heroFeedback) heroFeedback.textContent = event.message;
     }
     if (event.type === 'aria.error') stop(event.message);
@@ -332,7 +339,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     const signal = pending.signal;
     connecting = true;
     controls();
-    statusText.textContent = 'Connecting…';
+    setStatus('Connecting…');
     if (heroFeedback) heroFeedback.textContent = 'Connecting to Aria.';
     let stream: MediaStream | undefined,
       peer: RTCPeerConnection | undefined,
@@ -372,8 +379,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
         );
         void audio.play().catch(() => {
           if (currentGeneration === generation)
-            statusText.textContent =
-              'Your browser blocked audio. End and restart the conversation.';
+            setStatus('Your browser blocked audio. End and restart the conversation.');
         });
       });
       const channel = peer.createDataChannel('oai-events');
@@ -468,7 +474,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       if (currentGeneration !== generation || forgetting) return;
       connecting = false;
       visitor.connected();
-      statusText.textContent = 'Listening…';
+      setStatus('Listening…');
       if (heroFeedback)
         heroFeedback.textContent =
           'Aria is listening. Click the entity again to end the conversation.';
@@ -549,7 +555,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
         for (const track of conversation.stream.getAudioTracks())
           track.enabled = !conversation.muted;
         entity.mute(conversation.muted);
-        statusText.textContent = conversation.muted ? 'Microphone muted.' : 'Listening…';
+        setStatus(conversation.muted ? 'Microphone muted.' : 'Listening…');
         controls();
       },
       'cv-aria-mute'
@@ -594,7 +600,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       submit.disabled = true;
       input.value = '';
       message('user', prompt);
-      statusText.textContent = 'Thinking…';
+      setStatus('Thinking…');
       entity.working(true);
       const currentGeneration = generation;
       try {
@@ -607,15 +613,16 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
         visitor.connected();
         if (dialog.open) {
           if (!conversation) message('assistant', result.answer);
-          statusText.textContent = conversation ? 'Listening…' : 'Ready to talk.';
+          setStatus(conversation ? 'Listening…' : 'Ready to talk.');
         }
       } catch (cause) {
         const error = cause instanceof Error ? cause : new Error('Aria could not answer.');
         if (dialog.open && currentGeneration === generation && !forgetting && !abort.signal.aborted)
-          statusText.textContent =
+          setStatus(
             error.message === 'Failed to fetch'
               ? 'Aria is temporarily unavailable. Please try again.'
-              : error.message;
+              : error.message
+          );
       } finally {
         if (typedRequest === abort) {
           typedRequest = undefined;
@@ -689,7 +696,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     ready = false;
     controls();
     submit.disabled = true;
-    statusText.textContent = 'Connecting to Aria…';
+    setStatus('Connecting to Aria…');
     try {
       const response = await fetch(`${service}/status`, { signal: AbortSignal.timeout(4000) });
       if (!response.ok) throw new Error('Aria is temporarily unavailable. Please try again.');
@@ -705,21 +712,22 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       );
       voice.value = 'cove';
       ready = info.authenticated;
-      statusText.textContent = ready
-        ? voiceWaiting || typedRequest
-          ? 'Looking that up…'
-          : conversation
-            ? 'Listening…'
-            : 'Ready to talk.'
-        : info.message || 'Aria needs to reconnect.';
+      setStatus(
+        ready
+          ? voiceWaiting || typedRequest
+            ? 'Looking that up…'
+            : conversation
+              ? 'Listening…'
+              : 'Ready to talk.'
+          : info.message || 'Aria needs to reconnect.'
+      );
       if (!navigator.mediaDevices?.getUserMedia) {
-        statusText.textContent =
-          'Voice needs a browser with microphone support. You can ask in text.';
+        setStatus('Voice needs a browser with microphone support. You can ask in text.');
         start.disabled = true;
       }
     } catch {
       if (dialog.open && generation === openGeneration)
-        statusText.textContent = 'Aria is temporarily unavailable. Please try again.';
+        setStatus('Aria is temporarily unavailable. Please try again.');
     }
     if (dialog.open && generation === openGeneration) {
       controls();

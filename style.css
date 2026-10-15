@@ -294,7 +294,15 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .cv-aria-transcript::-webkit-scrollbar { display: none; }
 .cv-aria-transcript:empty { display: none; }
 .cv-aria-transcript > div + div { margin-top: 16px; }
-.cv-aria-transcript strong { font-weight: 700; }
+.cv-aria-transcript strong { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.cv-aria-transcript strong :is(svg, .cv-aria-mark) { width: 1em; height: 1em; flex-shrink: 0; }
+.cv-aria-transcript [data-entity="aria"] p { color: var(--cv-muted); }
+@supports (background-clip: text) {
+  .cv-aria-listening { background: linear-gradient(100deg, var(--cv-muted) 35%, color-mix(in srgb, var(--cv-muted) 75%, var(--cv-ink)) 50%, var(--cv-muted) 65%); background-size: 240% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; animation: aria-listening-shimmer 2000ms ease-in-out infinite; }
+}
+@keyframes aria-listening-shimmer { 0% { background-position: 120% 50%; } 60%, 100% { background-position: -120% 50%; } }
+@media (prefers-reduced-motion: reduce) { .cv-aria-listening { animation: none; background: none; color: var(--cv-muted); } }
+@media (forced-colors: active) { .cv-aria-listening { animation: none; background: none; color: CanvasText; } }
 .cv-aria-form { min-height: 44px; padding-left: 12px; border: 1px solid var(--cv-line); border-radius: 12px; background: rgb(var(--gray-500) / .06); flex-shrink: 0; }
 .cv-aria-form input { width: 100%; min-width: 0; padding: 0; border: 0; outline: none; background: transparent; color: inherit; font: inherit; }
 .cv-aria-form input::placeholder { color: var(--cv-muted); }

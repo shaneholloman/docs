@@ -14,7 +14,8 @@ import {
   Search,
   Mic,
   MicOff,
-  PhoneOff
+  PhoneOff,
+  UserRound
 } from 'lucide';
 import { setupSearch } from './search.ts';
 import { updateBodyIcons, setupThemeIcon, renderIcon, replaceIcon } from './icons.ts';
@@ -79,7 +80,8 @@ const updateAriaHeader = setupAria({
         mic: Mic,
         'mic-off': MicOff,
         'phone-off': PhoneOff,
-        'chevron-right': ChevronRight
+        'chevron-right': ChevronRight,
+        'user-round': UserRound
       }[name]
     ])
 });

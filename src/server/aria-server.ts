@@ -397,7 +397,9 @@ export function createAriaServer({
                   id,
                   JSON.stringify({
                     status: started ? 'ending' : 'already_ending',
-                    message: 'Say one brief goodbye. The conversation will close after you finish.'
+                    message: started
+                      ? 'Reply with one natural farewell, such as "Thanks for chatting. See you later!" Begin with the farewell itself. Do not acknowledge a task, announce cleanup, or promise any action. The call will close after the farewell.'
+                      : 'A farewell is already underway. Add no further speech or tool calls.'
                   })
                 );
                 return;

@@ -193,11 +193,14 @@ test('the session deadline aborts pending provider setup', async (t) => {
 });
 
 test('the voice end tool signs off, closes only its own session and bypasses knowledge lookup', async (t) => {
+  const memory = createVisitorStore(':memory:');
+  const visitorId = randomUUID();
   const inputs: VoiceInput[] = [];
   const delivered: string[][] = [];
   const closed: number[] = [];
   let lookups = 0;
   const { base, post } = await fixture(t, {
+    memory,
     ask: async () => {
       lookups++;
       return 'Shane worked at 8i.';
@@ -215,8 +218,10 @@ test('the voice end tool signs off, closes only its own session and bypasses kno
       };
     }
   });
+  memory.connected(visitorId);
+  memory.append(visitorId, 'user', 'Keep my earlier conversation');
   const first = sessionResultSchema.parse(
-    await (await post('/session', { sdp: 'v=0\r\n', returning: true })).json()
+    await (await post('/session', { sdp: 'v=0\r\n', returning: true, visitorId })).json()
   );
   const second = sessionResultSchema.parse(
     await (await post('/session', { sdp: 'v=0\r\n' })).json()
@@ -236,6 +241,8 @@ test('the voice end tool signs off, closes only its own session and bypasses kno
   await inputs[0].onDelegation('late-lookup', 'Look up another project while closing.');
   assert.equal(JSON.parse(delivered[0][1]).status, 'ending');
   assert.equal(JSON.parse(delivered[0][2]).status, 'already_ending');
+  assert.match(JSON.parse(delivered[0][1]).message, /Begin with the farewell itself/);
+  assert.match(JSON.parse(delivered[0][2]).message, /Add no further speech or tool calls/);
   assert.equal(lookups, 0);
   inputs[0].onEvent({ type: 'aria.turn.done' });
   assert.deepEqual(closed, [0, 0]);
@@ -248,6 +255,11 @@ test('the voice end tool signs off, closes only its own session and bypasses kno
   assert.match(content, /"type":"aria.ending"/);
   assert.match(content, /"type":"aria.closed","reason":"completed"/);
   assert.deepEqual(closed, [1, 0]);
+  assert.equal(
+    memory.read(visitorId)?.history[0].content?.[0].text,
+    'Keep my earlier conversation'
+  );
+  assert.equal(memory.read(visitorId)?.history.at(-1)?.content?.[0].text, 'Goodbye!');
   assert.equal((await post(`/session/${first.id}/end`, {})).status, 404);
   await inputs[1].onDelegation('another-question', 'Thanks, one more question about Shane at 8i.');
   assert.equal(lookups, 1);

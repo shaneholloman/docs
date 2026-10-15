@@ -195,7 +195,11 @@ the next call without changing the live connection or microphone processing.
 Aria's voice agent has two application control tools using the same strict
 client-delegation envelope as the native Aria app. `end_conversation` is limited
 to an explicit goodbye or request to end, not an ordinary thank-you,
-a quoted example, or a follow-up question. The tool ends only the caller's voice
+a quoted example, or a follow-up question. Aria invokes it silently and gives one
+natural social farewell after confirmation, without a task acknowledgment or
+cleanup narration. Ordinary farewells preserve visitor memory; deletion wording
+belongs exclusively to explicit requests handled by `delete_visitor_memory`.
+The tool ends only the caller's voice
 session. It waits for farewell output and playback completion, with a short
 WebRTC drain allowance for the subscription transport's turn-complete event.
 A 15-second fallback prevents a missing completion event from leaving the call

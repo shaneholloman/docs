@@ -1,4 +1,47 @@
-(() => {
+import {
+  createElement,
+  BriefcaseBusiness,
+  Layers,
+  GraduationCap,
+  FingerprintPattern,
+  BookOpen,
+  History
+} from 'lucide';
+import type { IconNode } from 'lucide';
+export type IconDefinition = [name: string, node: IconNode];
+export function renderIcon([name, node]: IconDefinition, className = '') {
+  return createElement(node, {
+    class: `lucide lucide-${name}${className ? ` ${className}` : ''}`,
+    'data-lucide': name,
+    'aria-hidden': 'true',
+    focusable: 'false'
+  });
+}
+export function replaceIcon(svg: Element | null, definition: IconDefinition) {
+  if (svg && svg.getAttribute('data-lucide') !== definition[0])
+    svg.replaceWith(renderIcon(definition));
+}
+const headings: Record<string, IconDefinition> = {
+  'profile-heading': ['fingerprint-pattern', FingerprintPattern],
+  'experience-heading': ['briefcase-business', BriefcaseBusiness],
+  'expertise-heading': ['layers', Layers],
+  'learning-heading': ['book-open', BookOpen],
+  'earlier-heading': ['history', History],
+  'education-heading': ['graduation-cap', GraduationCap]
+};
+export function updateBodyIcons() {
+  for (const [id, [name, node]] of Object.entries(headings)) {
+    const heading = document.getElementById(id);
+    if (!heading) continue;
+    const current = heading.querySelector('.cv-section-icon');
+    if (current?.getAttribute('data-lucide') === name) continue;
+    const icon = renderIcon([name, node], 'cv-section-icon');
+    if (current) current.replaceWith(icon);
+    else heading.prepend(icon);
+  }
+}
+
+export function setupThemeIcon() {
   // Mintlify generates raster favicons. Keep an SVG favicon synchronized with
   // the site's computed highlight color, using favicon.svg as the only source.
   async function initialize() {
@@ -7,9 +50,9 @@
       if (!response.ok) throw new Error(`Icon request failed: ${response.status}`);
       const svg = new DOMParser().parseFromString(await response.text(), 'image/svg+xml');
       if (svg.querySelector('parsererror')) throw new Error('Invalid icon SVG');
-      let previousColor;
-      let iconUrl;
-      let frame;
+      let previousColor: string | undefined;
+      let iconUrl = '';
+      let frame = 0;
 
       function update() {
         const logo = document.querySelector('#navbar a:has(> .nav-logo)');
@@ -20,7 +63,7 @@
           iconUrl = `data:image/svg+xml,${encodeURIComponent(new XMLSerializer().serializeToString(svg))}`;
           previousColor = highlight;
         }
-        let icons = [...document.head.querySelectorAll('link[rel~="icon"]')];
+        let icons = [...document.head.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')];
         if (!icons.length) {
           const icon = document.createElement('link');
           icon.rel = 'icon';
@@ -62,4 +105,4 @@
   } else {
     initialize();
   }
-})();
+}

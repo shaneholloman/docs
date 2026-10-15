@@ -1,6 +1,10 @@
 import { readFile, writeFile, rename } from 'node:fs/promises';
-import { subscriptionSchema, tokenClaimsSchema, refreshedTokensSchema } from './aria-contracts.ts';
-import type { Subscription } from './aria-contracts.ts';
+import {
+  subscriptionSchema,
+  tokenClaimsSchema,
+  refreshedTokensSchema
+} from '../shared/aria-contracts.ts';
+import type { Subscription } from '../shared/aria-contracts.ts';
 
 export function subscriptionReader({
   file,
@@ -9,7 +13,7 @@ export function subscriptionReader({
 }: {
   file: string;
   refresh?: boolean;
-  request?: typeof fetch;
+  request?: (url: string, options: RequestInit) => Promise<Response>;
 }) {
   let refreshing: Promise<Subscription> | undefined;
   const loginError = () =>

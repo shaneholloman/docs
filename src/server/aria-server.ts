@@ -11,7 +11,7 @@ import {
   voiceModel,
   reasoningModel
 } from './aria-openai.ts';
-import { askRequestSchema, sessionRequestSchema } from './aria-contracts.ts';
+import { askRequestSchema, sessionRequestSchema } from '../shared/aria-contracts.ts';
 import type {
   KnowledgeMaterial,
   AskInput,
@@ -19,10 +19,10 @@ import type {
   VoiceConnection,
   ResponseItem,
   AriaEvent
-} from './aria-contracts.ts';
+} from '../shared/aria-contracts.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-const root = fileURLToPath(new URL('../', import.meta.url));
+const root = fileURLToPath(new URL('../../', import.meta.url));
 const allowedOrigins = new Set([
   'http://localhost:3000',
   'http://127.0.0.1:3000',

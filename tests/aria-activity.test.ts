@@ -1,5 +1,10 @@
 import { test, expect } from 'bun:test';
-import { voiceLevel, followEnvelope, backgroundPulse, strokeBrightness } from './aria-activity.ts';
+import {
+  voiceLevel,
+  followEnvelope,
+  backgroundPulse,
+  strokeBrightness
+} from '../src/shared/aria-activity.ts';
 
 test('native speech metering ignores the noise floor and reaches full level at normal speech', () => {
   expect(voiceLevel(new Float32Array(256).fill(0.005))).toBe(0);

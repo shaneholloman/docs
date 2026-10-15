@@ -1,7 +1,11 @@
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const children = ['aria-server.ts', 'aria-preview.ts'].map((file) =>
-  spawn(process.execPath, [`scripts/${file}`], { stdio: 'inherit' })
+const extension = import.meta.url.endsWith('.ts') ? 'ts' : 'js';
+const children = ['aria-server', 'aria-preview'].map((file) =>
+  spawn(process.execPath, [fileURLToPath(new URL(`./${file}.${extension}`, import.meta.url))], {
+    stdio: 'inherit'
+  })
 );
 let stopping = false;
 const stop = (code: number = 0) => {

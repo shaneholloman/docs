@@ -1,0 +1,15 @@
+# Application source, server releases, tests, and tooling are not site assets.
+src/
+tools/
+tests/
+dist/
+data/
+.mintlify/
+.github/
+node_modules/
+README.md
+Dockerfile
+compose.yaml
+package.json
+bun.lock
+tsconfig.json

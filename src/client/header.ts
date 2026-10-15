@@ -1,41 +1,51 @@
 import {
-  createElement, CodeXml, ContactRound, Mail, Monitor, Sun, Moon,
-  EllipsisVertical, X, ArrowUpRight, ChevronRight, ArrowUp, Check, Search, Mic, MicOff, PhoneOff
+  CodeXml,
+  ContactRound,
+  Mail,
+  Monitor,
+  Sun,
+  Moon,
+  EllipsisVertical,
+  X,
+  ArrowUpRight,
+  ChevronRight,
+  ArrowUp,
+  Check,
+  Search,
+  Mic,
+  MicOff,
+  PhoneOff
 } from 'lucide';
-import { setupCvSearch } from './cv-search.mjs';
-import { updateBodyIcons } from './body-icons.mjs';
+import { setupSearch } from './search.ts';
+import { updateBodyIcons, setupThemeIcon, renderIcon, replaceIcon } from './icons.ts';
+import type { IconDefinition } from './icons.ts';
 import { setupAria } from './aria-voice.ts';
 
-const icons = {
+const icons: Record<string, IconDefinition> = {
   'https://github.com/shaneholloman': ['code-xml', CodeXml],
   'https://www.linkedin.com/in/shaneholloman': ['contact-round', ContactRound],
   'mailto:shaneholloman@gmail.com': ['mail', Mail]
 };
-const themes = {
+const themes: Record<string, IconDefinition> = {
   system: ['monitor', Monitor],
   light: ['sun', Sun],
   dark: ['moon', Moon]
 };
 const mobileLinks = new WeakSet();
 
-function renderIcon([name, node]) {
-  return createElement(node, {
-    class: `lucide lucide-${name}`,
-    'data-lucide': name,
-    'aria-hidden': 'true',
-    focusable: 'false'
-  });
-}
-
-function replaceIcon(svg, definition) {
-  if (svg && svg.getAttribute('data-lucide') !== definition[0]) {
-    svg.replaceWith(renderIcon(definition));
-  }
-}
-
-const updateAriaHeader = setupAria({ icon: name => renderIcon([name, {
-  x: X, mic: Mic, 'mic-off': MicOff, 'phone-off': PhoneOff, 'chevron-right': ChevronRight
-}[name]]) });
+const updateAriaHeader = setupAria({
+  icon: (name) =>
+    renderIcon([
+      name,
+      {
+        x: X,
+        mic: Mic,
+        'mic-off': MicOff,
+        'phone-off': PhoneOff,
+        'chevron-right': ChevronRight
+      }[name]
+    ])
+});
 
 function updateHeader() {
   updateBodyIcons();
@@ -57,7 +67,8 @@ function updateHeader() {
     home.setAttribute('title', 'Back to top');
   }
   for (const link of document.querySelectorAll('.navbar-link a')) {
-    const url = new URL(link.getAttribute('href'), location.href);
+    const href = link.getAttribute('href') || '';
+    const url = new URL(href, location.href);
     if (['#cv-search', '#cv-aria'].includes(url.hash)) {
       link.removeAttribute('target');
       link.removeAttribute('rel');
@@ -66,30 +77,35 @@ function updateHeader() {
       link.removeAttribute('target');
       link.removeAttribute('rel');
       if (link.closest('nav[aria-label="Mobile menu"]') && !mobileLinks.has(link)) {
-        link.addEventListener('click', () => link.closest('[role="dialog"]')?.querySelector('button')?.click());
+        link.addEventListener('click', () =>
+          link.closest('[role="dialog"]')?.querySelector('button')?.click()
+        );
         mobileLinks.add(link);
       }
-    } else if (icons[link.getAttribute('href')]) {
-      const label = link.textContent.trim();
+    } else if (icons[href]) {
+      const label = link.textContent?.trim() || '';
       link.setAttribute('aria-label', label);
       link.setAttribute('title', label);
       link.classList.add('cv-header-icon');
       if (!link.querySelector('svg')) {
-        link.prepend(renderIcon(icons[link.getAttribute('href')]));
+        link.prepend(renderIcon(icons[href]));
       }
     }
   }
 
   for (const wrapper of document.querySelectorAll('[data-theme-preference-icon]')) {
-    const definition = themes[wrapper.getAttribute('data-theme-preference-icon')];
+    const definition = themes[wrapper.getAttribute('data-theme-preference-icon') || ''];
     if (definition) replaceIcon(wrapper.querySelector('svg'), definition);
   }
-  replaceIcon(document.querySelector('button[aria-label="More actions"] svg'), ['ellipsis-vertical', EllipsisVertical]);
+  replaceIcon(document.querySelector('button[aria-label="More actions"] svg'), [
+    'ellipsis-vertical',
+    EllipsisVertical
+  ]);
   for (const button of document.querySelectorAll('[role="dialog"] button')) {
     if (button.textContent.trim() === 'Close') replaceIcon(button.querySelector('svg'), ['x', X]);
   }
   for (const item of document.querySelectorAll('[role="menuitem"]')) {
-    const theme = item.textContent.trim().split(/\s+/)[0].toLowerCase();
+    const theme = item.textContent?.trim().split(/\s+/)[0].toLowerCase() || '';
     if (themes[theme]) {
       const svgs = item.querySelectorAll('svg');
       replaceIcon(svgs[0], themes[theme]);
@@ -97,7 +113,11 @@ function updateHeader() {
     }
   }
   for (const span of document.querySelectorAll('.cv span[aria-hidden="true"]')) {
-    const definition = { '↗': ['arrow-up-right', ArrowUpRight], '↑': ['arrow-up', ArrowUp] }[span.textContent.trim()];
+    const arrows: Record<string, IconDefinition> = {
+      '↗': ['arrow-up-right', ArrowUpRight],
+      '↑': ['arrow-up', ArrowUp]
+    };
+    const definition = arrows[span.textContent?.trim() || ''];
     if (definition && !span.querySelector('svg')) {
       span.replaceChildren(renderIcon(definition));
       span.classList.add('cv-inline-icon');
@@ -105,7 +125,8 @@ function updateHeader() {
   }
 }
 
-setupCvSearch({
+setupThemeIcon();
+setupSearch({
   searchIcon: () => renderIcon(['search', Search]),
   closeIcon: () => renderIcon(['x', X]),
   resultIcon: () => renderIcon(['chevron-right', ChevronRight])

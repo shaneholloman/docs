@@ -1,8 +1,8 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { searchArgumentsSchema, readArgumentsSchema } from './aria-contracts.ts';
-import type { KnowledgeMaterial, FunctionTool } from './aria-contracts.ts';
+import { searchArgumentsSchema, readArgumentsSchema } from '../shared/aria-contracts.ts';
+import type { KnowledgeMaterial, FunctionTool } from '../shared/aria-contracts.ts';
 
 export function xml(text: string): string {
   return [...text]

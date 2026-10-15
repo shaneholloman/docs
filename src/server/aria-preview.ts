@@ -77,11 +77,11 @@ export function createPreviewServer({
         return;
       }
       const files: Record<string, [string, string]> = {
-        '/aria-preview.js': ['../aria-preview.js', 'text/javascript'],
-        '/aria-preview.css': ['../style.css', 'text/css'],
-        '/aria.svg': ['../aria.svg', 'image/svg+xml'],
-        '/favicon.svg': ['../favicon.svg', 'image/svg+xml'],
-        '/favicon.ico': ['../favicon.svg', 'image/svg+xml']
+        '/aria-preview.js': ['../../dist/client/aria-preview.js', 'text/javascript'],
+        '/aria-preview.css': ['../../dist/client/style.css', 'text/css'],
+        '/aria.svg': ['../../dist/client/aria.svg', 'image/svg+xml'],
+        '/favicon.svg': ['../../dist/client/favicon.svg', 'image/svg+xml'],
+        '/favicon.ico': ['../../dist/client/favicon.svg', 'image/svg+xml']
       };
       const file = files[req.url.split('?')[0]];
       if (file) {

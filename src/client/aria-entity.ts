@@ -1,5 +1,10 @@
-import iconSource from '../aria.svg' with { type: 'text' };
-import { voiceLevel, followEnvelope, backgroundPulse, strokeBrightness } from './aria-activity.ts';
+import iconSource from '../../aria.svg' with { type: 'text' };
+import {
+  voiceLevel,
+  followEnvelope,
+  backgroundPulse,
+  strokeBrightness
+} from '../shared/aria-activity.ts';
 
 type Meter = {
   source: MediaStreamAudioSourceNode;

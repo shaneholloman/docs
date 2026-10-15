@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { loadKnowledge } from './aria-knowledge.ts';
+import { loadKnowledge } from '../src/server/aria-knowledge.ts';
 
 const directory = process.env.ARIA_KNOWLEDGE_DIR || resolve('data/knowledge');
 const material = await loadKnowledge(resolve('index.mdx'), directory);

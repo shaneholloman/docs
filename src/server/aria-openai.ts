@@ -4,14 +4,18 @@ import { randomUUID } from 'node:crypto';
 import WebSocket from 'ws';
 import { reasoningInstructions, voiceInstructions } from './aria-knowledge.ts';
 import { subscriptionReader } from './aria-auth.ts';
-import { voiceNames, responseStreamEventSchema, liveEventSchema } from './aria-contracts.ts';
+import {
+  voiceNames,
+  responseStreamEventSchema,
+  liveEventSchema
+} from '../shared/aria-contracts.ts';
 import type {
   Subscription,
   ResponseItem,
   AskInput,
   VoiceInput,
   VoiceConnection
-} from './aria-contracts.ts';
+} from '../shared/aria-contracts.ts';
 
 // The subscription Live contract is taken from Aria's proven OpenAI adapter.
 // This is intentionally separate from the public API-key Realtime contract.

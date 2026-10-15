@@ -2,10 +2,10 @@ import { test, expect } from 'bun:test';
 import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadKnowledge, cvMarkdown } from './aria-knowledge.ts';
-import { askLuna } from './aria-openai.ts';
-import { askRequestSchema, sessionRequestSchema } from './aria-contracts.ts';
-import type { ResponseItem } from './aria-contracts.ts';
+import { loadKnowledge, cvMarkdown } from '../src/server/aria-knowledge.ts';
+import { askLuna } from '../src/server/aria-openai.ts';
+import { askRequestSchema, sessionRequestSchema } from '../src/shared/aria-contracts.ts';
+import type { ResponseItem } from '../src/shared/aria-contracts.ts';
 
 async function fixture(
   run: (material: Awaited<ReturnType<typeof loadKnowledge>>) => Promise<void>

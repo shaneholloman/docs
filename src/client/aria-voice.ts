@@ -4,8 +4,8 @@ import {
   sessionResultSchema,
   textEventSchema,
   errorResultSchema
-} from './aria-contracts.ts';
-import type { AriaEvent } from './aria-contracts.ts';
+} from '../shared/aria-contracts.ts';
+import type { AriaEvent } from '../shared/aria-contracts.ts';
 import {
   createAriaEntity,
   fitHeroEntity,

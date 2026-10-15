@@ -1,4 +1,5 @@
-import { createElement, X, Mic, MicOff, PhoneOff, ChevronRight } from 'lucide';
+import { X, Mic, MicOff, PhoneOff, ChevronRight } from 'lucide';
+import { renderIcon } from './icons.ts';
 import { setupAria } from './aria-voice.ts';
 import type { AriaIconName } from './aria-voice.ts';
 
@@ -10,12 +11,7 @@ const definitions: Record<AriaIconName, typeof X> = {
   'chevron-right': ChevronRight
 };
 const update = setupAria({
-  icon: (name) =>
-    createElement(definitions[name], {
-      class: `lucide lucide-${name}`,
-      'aria-hidden': 'true',
-      focusable: 'false'
-    })
+  icon: (name) => renderIcon([name, definitions[name]])
 });
 // Mintlify hydrates the complete document. Wait for its own custom header
 // script before inserting Aria, so server-rendered markup still matches React.

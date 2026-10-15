@@ -1,13 +1,4 @@
 *
-!package.json
-!bun.lock
-!scripts/
-!scripts/*.mjs
-!scripts/*.ts
-scripts/*.test.mjs
-scripts/*.test.ts
+!dist/
+!dist/**
 !index.mdx
-!style.css
-!aria.svg
-!favicon.svg
-!aria-preview.js

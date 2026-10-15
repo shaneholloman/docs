@@ -2,8 +2,8 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import assert from 'node:assert/strict';
-import { loadKnowledge } from './aria-knowledge.ts';
-import { askLuna } from './aria-openai.ts';
+import { loadKnowledge } from '../src/server/aria-knowledge.ts';
+import { askLuna } from '../src/server/aria-openai.ts';
 
 // Explicit live integration check, excluded from the default offline test suite.
 // The fixture contains only approved career facts already present in the CV.

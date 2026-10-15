@@ -87,7 +87,8 @@ theme. The desktop entity is 25% taller than the name-to-summary text span and
 centred vertically across that span, with a small leftward offset. Mobile uses
 a smaller mark centred beside the name.
 Hover reuses the uic.nz entity treatment, with its glow opacity halved: a white 10 px glow at 0.3 opacity,
-0.5-second ease, opacity 0.7 to 1, and scale 1.005. Only visible strokes activate
+0.5-second ease and scale 1.005. Resting strokes match the shared muted gray in
+both themes, with no extra opacity reduction. Only visible strokes activate
 it; a 50 ms release delay bridges gaps. The top dot picks from the same ten
 colours and transitions over 0.4 seconds. Keyboard focus gets the same treatment.
 The hover highlight blends back into the live voice levels over 0.5 seconds on

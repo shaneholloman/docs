@@ -157,8 +157,7 @@ html:has(#cv-search-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; 
   border-radius: 12px;
   background: rgb(var(--gray-500) / .06);
 }
-.cv-search-field:focus-within { border-color: var(--cv-accent); }
-.cv-search-field:has(input:focus-visible) { outline: 2px solid var(--cv-accent); outline-offset: 2px; }
+.cv-search-field:focus-within { border-color: var(--cv-muted); }
 .cv-search-field > svg, #cv-search-dialog button svg, #cv-search-results svg { width: var(--header-icon-size); height: var(--header-icon-size); flex-shrink: 0; }
 .cv-search-field > svg { color: var(--cv-muted); }
 .cv-search-field input { width: 100%; min-width: 0; padding: 0; border: 0; outline: none; background: transparent; color: inherit; font: inherit; }

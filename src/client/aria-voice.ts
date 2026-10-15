@@ -6,7 +6,6 @@ import {
   errorResultSchema
 } from '../shared/aria-contracts.ts';
 import type { AriaEvent } from '../shared/aria-contracts.ts';
-import { captureConstraints } from './aria-audio.ts';
 import {
   createAriaEntity,
   fitHeroEntity,
@@ -256,7 +255,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       audio: HTMLAudioElement | undefined;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: captureConstraints(navigator.userAgent)
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
       });
       if (currentGeneration !== generation) {
         stream.getTracks().forEach((track) => track.stop());

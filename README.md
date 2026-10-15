@@ -169,13 +169,13 @@ animation. The native attack and release envelopes run independently on animatio
 frames. During a call the Entity uses full opacity and full-contrast active strokes;
 its resting gray and hover treatment remain separate.
 
-iOS 27 has a reported WebKit regression in simultaneous echo-cancelled capture
-and playback ([326286](https://bugs.webkit.org/show_bug.cgi?id=326286)). On that
-version only, capture disables browser voice processing. Other platforms keep
-echo cancellation, noise suppression, and automatic gain control. This workaround
-needs an actual iPhone listening check; desktop emulation cannot validate its
-audio quality. Disabling echo cancellation can allow speaker bleed and can change
-the iPhone's output route or volume.
+Echo cancellation, noise suppression, and automatic gain control remain enabled
+on every platform. iOS 27 has a reported WebKit regression in simultaneous
+echo-cancelled capture and playback
+([326286](https://bugs.webkit.org/show_bug.cgi?id=326286)). This is an investigation
+lead, not a verified diagnosis or reason to disable communication features.
+Any further workaround needs a local iPhone listening check before publication;
+desktop emulation cannot validate its audio quality.
 
 Aria uses your existing **ChatGPT subscription login**, read by the local service
 from Codex's auth store. Sign in or refresh that login with `codex login`.

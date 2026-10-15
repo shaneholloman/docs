@@ -2,7 +2,12 @@ import { test, expect } from 'bun:test';
 import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadKnowledge, cvMarkdown } from '../src/server/aria-knowledge.ts';
+import {
+  loadKnowledge,
+  cvMarkdown,
+  voiceInstructions,
+  reasoningInstructions
+} from '../src/server/aria-knowledge.ts';
 import { askLuna } from '../src/server/aria-openai.ts';
 import { askRequestSchema, sessionRequestSchema } from '../src/shared/aria-contracts.ts';
 import type { ResponseItem } from '../src/shared/aria-contracts.ts';
@@ -73,6 +78,37 @@ test('resume conversion retains links and separates inline metadata', () => {
       '<h1>Shane <span>Holloman<span>.</span></span></h1><p>Head of AI <span>Building solutions</span></p><a href="https://example.com">Credential</a>'
     )
   ).toBe('# Shane Holloman.\n\nHead of AI Building solutions\n\n[Credential](https://example.com)');
+});
+
+test('both agents receive the small versioned authorship brief up front while other background remains on demand', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'aria-project-brief-'));
+  try {
+    const cv = join(directory, 'index.mdx');
+    const bundled = join(directory, 'knowledge');
+    await mkdir(bundled);
+    await writeFile(cv, '<h1>Shane Holloman</h1><p>Head of AI</p>');
+    await writeFile(
+      join(bundled, 'shane.md'),
+      '# Authorship\n\nShane created the entire Aria harness. Literal <project> markup.'
+    );
+    await writeFile(join(bundled, 'extra.md'), '# Other background\n\nLOOKUP-ONLY-DETAIL');
+    const material = await loadKnowledge(cv, undefined, undefined, bundled);
+    expect(material.text).toContain('<project_brief>');
+    expect(material.text).toContain('Literal &lt;project&gt; markup.');
+    expect(material.text).not.toContain('LOOKUP-ONLY-DETAIL');
+    for (const instructions of [
+      voiceInstructions(material.text),
+      reasoningInstructions(material.text)
+    ])
+      expect(instructions).toContain('Shane created the entire Aria harness.');
+    expect(
+      material.lookup.execute('KnowledgeQuery', { mode: 'page', page: 'background/extra.md' })
+    ).toContain('LOOKUP-ONLY-DETAIL');
+    await writeFile(join(bundled, 'shane.md'), 'x'.repeat(4001));
+    await expect(loadKnowledge(cv, undefined, undefined, bundled)).rejects.toThrow('project brief');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test('KnowledgeQuery pages discovery and rejects a cursor reused for another query', async () => {

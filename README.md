@@ -271,7 +271,10 @@ JSON Schema definitions.
 
 The local server converts the complete `index.mdx` resume into Markdown,
 preserving headings, lists and links. It wraps the Markdown in XML-encoded
-sections and gives the full resume to both agents up front. There is no second
+sections and gives the full resume to both agents up front. The small versioned
+`knowledge/shane.md` project brief also enters both agents’ initial context,
+XML-encoded and bounded to 4,000 bytes. It supplies authorship facts directly;
+other supplemental bodies stay on demand. There is no second
 resume to maintain. Add approved `.md` and `.txt` background files to ignored
 `data/knowledge/`, or set `ARIA_KNOWLEDGE_DIR` to another directory. These files
 do not enter the browser bundle. Only add material Aria may disclose to visitors.
@@ -285,9 +288,10 @@ have his resume and one directory of approved background information. They do
 not frame this as a refusal or imply they are withholding secrets. Infrastructure
 work in Shane's resume remains in scope.
 
-Aria receives a supplemental source index, not all supplemental bodies, and
-answers routine resume questions directly. It delegates supplemental lookups
-or deeper analysis to Luna. Luna receives the resume, source index, question,
+Aria receives the project brief and a supplemental source index, with other
+supplemental bodies on demand, and answers routine resume questions directly.
+It delegates supplemental lookups or deeper analysis to Luna. Luna receives the
+resume, project brief, source index, question,
 and up to eight prior delegated Q&A pairs, plus these read-only tools:
 
 - `KnowledgeQuery`: reads Shane’s background using `overview`, `search`, and `page`.
@@ -359,14 +363,20 @@ exported documentation snapshot, not live evidence about the website or visitor.
 Versioned personal background in `knowledge/` also ships in the release. Mutable
 NAS additions remain in `data/knowledge/`. Both feed the same approved knowledge
 silo. Broad platform questions delegate to Luna, which retrieves an introduction
-before explaining deeper architecture. `bun tools/guide-smoke.ts` explicitly tests
-real local subscription retrieval without a microphone or visitor transcripts.
+before explaining deeper architecture. Harness and function questions retrieve
+relevant detailed pages from the full guide. Both agents distinguish an overview
+page from the full documentation, preserve approved authorship, and explain
+purpose and capabilities before internal terminology. General introductions use
+relaxed attribution; fuller harness authorship belongs in direct scope questions.
+`bun tools/guide-smoke.ts` explicitly tests real local subscription retrieval and
+answer quality for a general introduction, direct authorship, harness architecture
+and voice delegation, without a microphone or visitor transcripts.
 
 New voice sessions capture a fresh knowledge snapshot. Typed requests reload
 the files; delegated voice questions use their conversation's original snapshot.
 Run `bun run inspect:knowledge` to write the exact frontloaded context to ignored
-`data/aria-context.xml` for review. Supplemental file bodies are absent from that
-file until retrieved by a tool.
+`data/aria-context.xml` for review. Other supplemental file bodies are absent
+from that file until retrieved by a tool.
 
 Microphone access begins only after starting a conversation. Mute disables
 its audio track. Ending the conversation or leaving the page releases microphone

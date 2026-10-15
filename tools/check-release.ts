@@ -40,6 +40,7 @@ const server = serverModule.createAriaServer({
     assert.match(knowledge, /Shane Holloman/);
     assert.match(knowledge, /Cello Group/);
     assert.match(knowledge, /8i/);
+    assert.match(knowledge, /<project_brief>[\s\S]*entire Aria harness/);
     assert.deepEqual(
       lookup?.tools.map((tool) => tool.name),
       ['KnowledgeQuery', 'AriaQuery']

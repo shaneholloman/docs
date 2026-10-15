@@ -32,6 +32,8 @@ The library license is included in `LICENSE.lucide`.
 The Lucide search control opens a local section search implemented in
 `scripts/cv-search.mjs`. It indexes the rendered CV content, ranks role and company
 matches ahead of body mentions, and links results to stable anchors in `index.mdx`.
+Search results use Lucide's `ChevronRight`; Mintlify's built-in icon library is
+also configured as Lucide in `docs.json`.
 Selecting a result closes the dialog and scrolls to that entry below the header.
 It supports keyboard navigation, Command/Ctrl+K, and works without a Mintlify login.
 Run `node --test scripts/cv-search.test.mjs` to check search matching and ranking.

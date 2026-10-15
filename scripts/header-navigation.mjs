@@ -1,6 +1,6 @@
 import {
   createElement, CodeXml, ContactRound, Mail, Monitor, Sun, Moon,
-  EllipsisVertical, X, ArrowUpRight, ArrowRight, ArrowUp, Check, Search
+  EllipsisVertical, X, ArrowUpRight, ChevronRight, ArrowUp, Check, Search
 } from 'lucide';
 import { setupCvSearch } from './cv-search.mjs';
 
@@ -105,7 +105,7 @@ function updateHeader() {
 setupCvSearch({
   searchIcon: () => renderIcon(['search', Search]),
   closeIcon: () => renderIcon(['x', X]),
-  resultIcon: () => renderIcon(['arrow-right', ArrowRight])
+  resultIcon: () => renderIcon(['chevron-right', ChevronRight])
 });
 updateHeader();
 new MutationObserver(updateHeader).observe(document.body, { childList: true, subtree: true });

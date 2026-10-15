@@ -8,7 +8,7 @@ work history, studies, and education.
 Edit `index.mdx` for CV content, `style.css` for layout and typography, and
 `docs.json` for site settings and contact navigation.
 
-Typography uses Montserrat at weight 900 for the name and other headings,
+Typography uses Montserrat at weight 800 for the name and 900 for other headings,
 with Roboto at weight 300 for body text and 700 for bold text.
 
 `favicon.svg` is the shared source for the browser icon and navbar mark.

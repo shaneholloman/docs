@@ -223,6 +223,7 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 #cv-aria-dialog button:is(:hover, :focus-visible):not(:disabled) { color: var(--cv-accent); }
 #cv-aria-dialog :is(button, select, .cv-aria-transcript):focus-visible { outline: 2px solid var(--cv-line); outline-offset: 3px; }
 #cv-aria-dialog .cv-aria-close { width: 40px; padding: 0; margin: -8px -8px -8px 0; border-color: transparent; color: var(--cv-muted); }
+#cv-aria-dialog .cv-aria-mute { width: 44px; padding: 0; }
 .cv-aria-start { background: rgb(var(--gray-500) / .06); }
 #cv-aria-dialog button:disabled { opacity: .5; cursor: default; }
 #cv-aria-description, .cv-aria-status, .cv-aria-note, .cv-aria-voice { color: var(--cv-muted); }
@@ -306,6 +307,25 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 }
 @media (max-width: 600px) {
   :root { --cv-gutter: 22px; }
+  #cv-aria-dialog {
+    inset: auto 0 var(--cv-aria-bottom, 0px);
+    width: 100%;
+    max-width: 100%;
+    height: min(720px, calc(var(--cv-aria-visible-height, 100dvh) - env(safe-area-inset-top) - 12px));
+    max-height: calc(var(--cv-aria-visible-height, 100dvh) - env(safe-area-inset-top) - 12px);
+    padding: 20px 20px max(20px, env(safe-area-inset-bottom));
+    border-bottom: 0;
+    border-radius: 20px 20px 0 0;
+  }
+  #cv-aria-dialog[open] { gap: 12px; }
+  .cv-aria-header, #cv-aria-description, .cv-aria-actions, .cv-aria-status { flex-shrink: 0; }
+  .cv-aria-transcript { flex: 1; }
+  .cv-aria-actions { flex-wrap: wrap; }
+  #cv-aria-dialog .cv-aria-actions button { min-height: 44px; }
+  #cv-aria-dialog .cv-aria-form { min-height: 48px; margin-top: auto; }
+  #cv-aria-dialog .cv-aria-form button { min-height: 44px; width: 44px; }
+  #cv-aria-dialog[data-compact] { padding: 12px 16px; gap: 8px; }
+  #cv-aria-dialog[data-compact] :is(#cv-aria-description, .cv-aria-note) { display: none; }
   .cv { --cv-name-size: clamp(44px, 14vw, 80px); }
   .cv { padding: 32px var(--cv-gutter) 24px; }
   .cv-hero h1 { margin: 25px 0; }

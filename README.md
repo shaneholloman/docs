@@ -65,7 +65,7 @@ completion. Content updates are manual.
 
 Run `bun run dev` to start the Mintlify preview at `http://localhost:3000` and
 the local Aria service at `http://127.0.0.1:8791`. Click the Aria icon immediately
-after search, then **Start conversation**. Cove is fixed as the default voice,
+after search, then **Ask Aria**. Cove is fixed as the default voice,
 and the voice selector is temporarily hidden. The component appears on
 localhost, the live Mintlify CV, and the NAS-hosted combined preview.
 It uses the current theme, Roboto typography, and the supplied Aria mark in
@@ -182,7 +182,7 @@ the live CV's analytics. `/aria-api/` routes to the NAS voice service over loopb
 remains the CV host. The Mac and its development server are not part of this
 runtime path. Open `https://shaneholloman.dev` or the combined preview at
 `https://aria.shaneholloman.dev` on iPhone. Allow microphone access after tapping
-**Start conversation**.
+**Ask Aria**.
 
 Additional approved knowledge belongs in NAS `data/knowledge/`. Both knowledge
 and authentication survive container replacement. `restart: unless-stopped`

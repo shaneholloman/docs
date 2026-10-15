@@ -22,6 +22,13 @@ export function setupAria({ icon }) {
   let generation = 0;
   let pending;
   const captions = { user: null, assistant: null };
+  const fitViewport = () => {
+    if (!dialog?.open || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    dialog.style.setProperty('--cv-aria-visible-height', `${viewport.height}px`);
+    dialog.style.setProperty('--cv-aria-bottom', `${Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)}px`);
+    dialog.toggleAttribute('data-compact', viewport.height < 440);
+  };
 
   const button = (label, name, action, className = '') => {
     const element = document.createElement('button');
@@ -41,11 +48,13 @@ export function setupAria({ icon }) {
   };
   const controls = () => {
     start.disabled = connecting || !ready || !navigator.mediaDevices?.getUserMedia;
-    start.replaceChildren(icon(conversation ? 'phone-off' : 'mic'), document.createTextNode(conversation ? 'End conversation' : connecting ? 'Connecting…' : 'Start conversation'));
+    start.replaceChildren(icon(conversation ? 'phone-off' : 'mic'), document.createTextNode(conversation ? 'End conversation' : connecting ? 'Connecting…' : 'Ask Aria'));
     mute.hidden = !conversation;
     voice.disabled = connecting || Boolean(conversation);
     mute.setAttribute('aria-pressed', String(Boolean(conversation?.muted)));
-    mute.replaceChildren(icon(conversation?.muted ? 'mic-off' : 'mic'), document.createTextNode(conversation?.muted ? 'Unmute' : 'Mute'));
+    const muteLabel = conversation?.muted ? 'Unmute microphone' : 'Mute microphone';
+    mute.setAttribute('aria-label', muteLabel); mute.setAttribute('title', muteLabel);
+    mute.replaceChildren(icon(conversation?.muted ? 'mic-off' : 'mic'));
   };
   async function request(path, body, signal) {
     const response = await fetch(`${service}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
@@ -149,16 +158,17 @@ export function setupAria({ icon }) {
     close = button('', 'x', () => dialog.close(), 'cv-aria-close'); close.setAttribute('aria-label', 'Close Aria');
     header.append(title, close);
     const description = document.createElement('p'); description.id = 'cv-aria-description';
-    description.textContent = "Speak with Aria about Shane's work background and projects...";
+    description.textContent = "Talk to Aria about Shane's work.";
     status = document.createElement('p'); status.className = 'cv-aria-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
     const actions = document.createElement('div'); actions.className = 'cv-aria-actions';
-    start = button('Start conversation', 'mic', connect, 'cv-aria-start');
-    mute = button('Mute', 'mic', () => {
+    start = button('Ask Aria', 'mic', connect, 'cv-aria-start');
+    mute = button('', 'mic', () => {
       if (!conversation) return;
       conversation.muted = !conversation.muted;
       for (const track of conversation.stream.getAudioTracks()) track.enabled = !conversation.muted;
       status.textContent = conversation.muted ? 'Microphone muted.' : 'Listening…'; controls();
-    });
+    }, 'cv-aria-mute');
+    mute.setAttribute('aria-label', 'Mute microphone'); mute.setAttribute('title', 'Mute microphone');
     mute.hidden = true;
     actions.append(start, mute);
     const settings = document.createElement('label'); settings.className = 'cv-aria-voice'; settings.textContent = 'Voice';
@@ -202,7 +212,7 @@ export function setupAria({ icon }) {
   }
   async function open(trigger) {
     if (!dialog) createDialog(); if (dialog.open) return;
-    returnFocus = trigger; dialog.showModal(); close.focus();
+    returnFocus = trigger; dialog.showModal(); fitViewport(); close.focus();
     const openGeneration = generation;
     ready = false; controls(); submit.disabled = true; status.textContent = 'Connecting to Aria…';
     try {
@@ -223,6 +233,8 @@ export function setupAria({ icon }) {
     event.preventDefault(); void open(trigger);
   });
   window.addEventListener('pagehide', () => stop());
+  window.visualViewport?.addEventListener('resize', fitViewport);
+  window.visualViewport?.addEventListener('scroll', fitViewport);
   const updateHeader = function () {
     if (!enabled()) return;
     const search = document.querySelector('.cv-search-item');

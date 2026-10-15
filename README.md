@@ -152,7 +152,7 @@ real streaming activity. The middle arcs stay steady. Waveform analysis
 leaves the direct audio path intact. Colours follow the current
 theme. The desktop entity is 25% taller than the name-to-summary text span and
 centred vertically across that span, with a small leftward offset. Mobile uses
-a smaller mark centred beside the name.
+a 64px mark centred beside the name, with a 24px column gap.
 Hover reuses the uic.nz entity treatment, with its glow opacity halved: a white 10 px glow at 0.3 opacity,
 0.5-second ease, opacity 0.7 to 1, and scale 1.005. Resting strokes use the shared
 muted gray in both themes. Only visible strokes activate
@@ -165,8 +165,9 @@ by CSS stroke transitions.
 Voice metering uses the original 256-sample waveform analyser on every animation
 frame, with the original normalization, 45 ms attack, and 260 ms release. The
 analyser outputs are unconnected: they read the streams without creating another
-speaker-output branch. The analysis context opens after microphone capture has
-established the device sample rate. Playback remains in a separate audio element
+speaker-output branch. The analysis context opens after the playback element signals `playing`, using
+the microphone capture sample rate. This startup-order candidate needs an iPhone
+listening check before promotion to the public CV. Playback remains in a separate audio element
 in the document body, including during hero-only conversations. During a call the
 Entity uses full opacity and full-contrast active strokes; its resting gray and
 hover treatment remain separate.
@@ -352,6 +353,9 @@ is needed for the public Aria service.
 
 The NAS preview fetches the published CV from Mintlify and adds its own Aria
 assets after Mintlify initializes its custom header, preserving React hydration.
+The preview claims its own Aria controller before the hosted browser bundle runs,
+then waits for Mintlify hydration before adding interface elements. This lets a
+NAS candidate be reviewed independently of the public CV.
 Preview analytics and CSP reports are acknowledged locally rather than sent to
 the live CV's analytics. `/aria-api/` routes to the NAS voice service over loopback. Mintlify
 remains the CV host. The Mac and its development server are not part of this

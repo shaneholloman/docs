@@ -21,6 +21,12 @@ const afterHeader = () => {
   )
     update();
 };
-const observer = new MutationObserver(afterHeader);
-observer.observe(document.body, { childList: true, subtree: true });
-afterHeader();
+function observePage() {
+  const observer = new MutationObserver(afterHeader);
+  observer.observe(document.body, { childList: true, subtree: true });
+  afterHeader();
+}
+// Claim the NAS controller before Mintlify's published bundle, but wait for
+// the document before observing it or adding any hydrated interface elements.
+if (document.body) observePage();
+else document.addEventListener('DOMContentLoaded', observePage, { once: true });

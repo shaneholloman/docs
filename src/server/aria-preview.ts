@@ -120,7 +120,7 @@ export function createPreviewServer({
             .toString()
             .replace(
               '</head>',
-              '<link rel="stylesheet" href="/aria-preview.css"><script defer src="/aria-preview.js"></script></head>'
+              '<link rel="stylesheet" href="/aria-preview.css"><script src="/aria-preview.js"></script></head>'
             );
           const headers = { ...response.headers, 'cache-control': 'no-store' };
           delete headers['content-length'];

@@ -394,7 +394,7 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
   .cv { --cv-name-size: clamp(44px, 14vw, 80px); }
   .cv { padding: 26px var(--cv-gutter) 24px; }
   .cv-hero h1 { margin: 0 0 25px; }
-  .cv-hero:has(.cv-aria-hero) { column-gap: 16px; }
+  .cv-hero:has(.cv-aria-hero) { column-gap: 24px; }
   .cv-hero:has(.cv-aria-hero) > .cv-intro { grid-column: 1 / -1; }
   .cv-aria-hero { grid-row: 1; left: 0; }
   .cv-surname { display: block; }

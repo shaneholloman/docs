@@ -261,8 +261,6 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
-      entity.prepareAudio(stream);
-      entity.input(stream);
       peer = new RTCPeerConnection();
       audio = document.createElement('audio');
       audio.autoplay = true;
@@ -273,8 +271,20 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       for (const track of stream.getTracks()) peer.addTrack(track, stream);
       peer.addEventListener('track', (event) => {
         if (!audio) return;
-        audio.srcObject = event.streams[0] || new MediaStream([event.track]);
-        entity.output(audio.srcObject as MediaStream);
+        const outputStream = event.streams[0] || new MediaStream([event.track]);
+        audio.srcObject = outputStream;
+        // Establish playback before opening the visualizer's audio context.
+        // The analyser observes an already-playing stream; its timing is unchanged.
+        audio.addEventListener(
+          'playing',
+          () => {
+            if (currentGeneration !== generation || !stream) return;
+            entity.prepareAudio(stream);
+            entity.input(stream);
+            entity.output(outputStream);
+          },
+          { once: true }
+        );
         void audio.play().catch(() => {
           if (currentGeneration === generation)
             status.textContent = 'Your browser blocked audio. End and restart the conversation.';

@@ -166,8 +166,10 @@ Voice metering uses the original 256-sample waveform analyser on every animation
 frame, with the original normalization, 45 ms attack, and 260 ms release. The
 analyser outputs are unconnected: they read the streams without creating another
 speaker-output branch. The analysis context opens after the playback element signals `playing`, using
-the microphone capture sample rate. This startup-order candidate needs an iPhone
-listening check before promotion to the public CV. Playback remains in a separate audio element
+the microphone capture sample rate. The staged startup-order candidate failed its
+iPhone listening check: Safari and Chrome still crackle through both entry points,
+although ring response is correct. It must not be promoted as an audio fix.
+Playback remains in a separate audio element
 in the document body, including during hero-only conversations. During a call the
 Entity uses full opacity and full-contrast active strokes; its resting gray and
 hover treatment remain separate.
@@ -179,6 +181,22 @@ echo-cancelled capture and playback
 lead, not a verified diagnosis or reason to disable communication features.
 Any further workaround needs a local iPhone listening check before publication;
 desktop emulation cannot validate its audio quality.
+
+An opt-in audio diagnostic is available locally at
+`http://localhost:3000/?aria-audio-test=1`, under the header Aria panel. It remains
+disabled on the production CV, including when that query parameter is present.
+The same gate supports the NAS preview hostname, but diagnostic code must be staged
+there explicitly before iPhone testing. During one live call, the diagnostic can
+suspend and resume only the analysis AudioContext. Rings freeze while suspended;
+the WebRTC connection, playback element, capture stream, and microphone processing
+are untouched. A separate checkbox starts the next call without creating an
+analysis context at all, for a direct-playback baseline. It is locked for the
+duration of that call. This is an isolation test, not a replacement animation or audio fix.
+Once-per-second WebRTC measurements record packet loss, concealment, jitter-buffer
+counters, and samples inserted to slow playback, where the browser supports them.
+These measurements never drive the rings. Reports remain in the browser until
+manually copied, omit network addresses and device identifiers, and contain no
+audio, transcripts, SDP, or credentials. Unsupported metrics remain unavailable.
 
 Aria uses your existing **ChatGPT subscription login**, read by the local service
 from Codex's auth store. Sign in or refresh that login with `codex login`.

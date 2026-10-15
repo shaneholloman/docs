@@ -25,7 +25,7 @@ const entityColors = [
   '#22d3ee'
 ] as const;
 
-export function createAriaEntity() {
+export function createAriaEntity(onAudioContext?: (context: AudioContext | undefined) => void) {
   const marks = new Set<SVGSVGElement>();
   let context: AudioContext | undefined;
   let input: Meter | undefined, output: Meter | undefined;
@@ -107,6 +107,7 @@ export function createAriaEntity() {
           sampleRate: stream.getAudioTracks()[0]?.getSettings().sampleRate
         });
         void context.resume().catch(() => {});
+        onAudioContext?.(context);
       } catch {
         /* Metering is optional; voice remains available. */
       }
@@ -142,6 +143,7 @@ export function createAriaEntity() {
       impulse = 0;
       void context?.close().catch(() => {});
       context = undefined;
+      onAudioContext?.(undefined);
       schedule();
     }
   };

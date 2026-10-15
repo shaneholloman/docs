@@ -292,6 +292,11 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .cv-aria-form input::placeholder { color: var(--cv-muted); }
 #cv-aria-dialog .cv-aria-form button { border: 0; width: 40px; padding: 0; color: var(--cv-muted); }
 .cv-aria-note { flex-shrink: 0; }
+.cv-aria-diagnostics { flex-shrink: 0; padding-top: 12px; border-top: 1px solid var(--cv-line); }
+.cv-aria-diagnostics summary { cursor: pointer; }
+.cv-aria-diagnostics p { margin: 12px 0; color: var(--cv-muted); }
+.cv-aria-diagnostic-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.cv-aria-diagnostics textarea { width: 100%; margin-top: 12px; padding: 8px; border: 1px solid var(--cv-line); border-radius: 8px; background: var(--cv-paper); color: var(--cv-ink); font: inherit; }
 .cv h1 { font-family: var(--cv-font-heading); font-size: calc(var(--cv-name-size) * 2 / 3 * 1.1); font-weight: 800; color: var(--cv-name-color); }
 .cv h2, .cv h3, .cv-role { font-family: var(--cv-font-heading); font-size: var(--cv-title-size); font-weight: 900; }
 .cv-role span { font-family: var(--cv-font-body); font-size: var(--cv-body-size); font-weight: 400; }

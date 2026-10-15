@@ -6,6 +6,7 @@ import {
   errorResultSchema
 } from '../shared/aria-contracts.ts';
 import type { AriaEvent } from '../shared/aria-contracts.ts';
+import { audioDiagnosticsEnabled, createAudioDiagnostics } from './aria-diagnostics.ts';
 import {
   createAriaEntity,
   fitHeroEntity,
@@ -46,7 +47,10 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
   const controllers = window as typeof window & { [key: symbol]: (() => void) | undefined };
   const existing = controllers[controller];
   if (existing) return existing;
-  const entity = createAriaEntity();
+  const diagnostics = audioDiagnosticsEnabled(location.origin, location.search)
+    ? createAudioDiagnostics()
+    : undefined;
+  const entity = createAriaEntity(diagnostics?.observeContext);
   let heroButton: HTMLButtonElement | undefined;
   let heroFeedback: HTMLSpanElement | undefined;
   let activation: 'hero' | 'panel' = 'panel';
@@ -183,6 +187,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     pending?.abort();
     pending = null;
     const current = conversation;
+    diagnostics?.end();
     conversation = null;
     connecting = false;
     entity.stop();
@@ -279,6 +284,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
           'playing',
           () => {
             if (currentGeneration !== generation || !stream) return;
+            if (diagnostics?.skipAnalysis()) return;
             entity.prepareAudio(stream);
             entity.input(stream);
             entity.output(outputStream);
@@ -292,6 +298,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       });
       const channel = peer.createDataChannel('oai-events');
       conversation = { peer, stream, audio, channel, muted: false };
+      diagnostics?.start(conversation);
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
       if (peer.iceGatheringState !== 'complete')
@@ -512,6 +519,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     note.className = 'cv-aria-note';
     note.textContent = 'Mic on only during conversations.';
     dialog.append(header, description, actions, settings, status, transcript, form, note);
+    diagnostics?.attach(dialog);
     document.body.append(dialog);
     dialog.addEventListener('close', () => {
       if (activation === 'panel') stop();
@@ -536,7 +544,9 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     dialog.addEventListener('keydown', (event) => {
       if (event.key !== 'Tab') return;
       const elements = [
-        ...dialog.querySelectorAll<HTMLElement>('button, select, input, [tabindex="0"]')
+        ...dialog.querySelectorAll<HTMLElement>(
+          'button, summary, textarea, select, input, [tabindex="0"]'
+        )
       ].filter(
         (element) =>
           !('disabled' in element && element.disabled) &&

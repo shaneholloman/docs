@@ -1,9 +1,10 @@
 import {
   createElement, CodeXml, ContactRound, Mail, Monitor, Sun, Moon,
-  EllipsisVertical, X, ArrowUpRight, ChevronRight, ArrowUp, Check, Search
+  EllipsisVertical, X, ArrowUpRight, ChevronRight, ArrowUp, Check, Search, Mic, MicOff, PhoneOff
 } from 'lucide';
 import { setupCvSearch } from './cv-search.mjs';
 import { updateBodyIcons } from './body-icons.mjs';
+import { setupAria } from './aria-voice.mjs';
 
 const icons = {
   'https://github.com/shaneholloman': ['code-xml', CodeXml],
@@ -32,6 +33,10 @@ function replaceIcon(svg, definition) {
   }
 }
 
+const updateAriaHeader = setupAria({ icon: name => renderIcon([name, {
+  x: X, mic: Mic, 'mic-off': MicOff, 'phone-off': PhoneOff, 'chevron-right': ChevronRight
+}[name]]) });
+
 function updateHeader() {
   updateBodyIcons();
   const navigation = document.querySelector('#navbar nav[aria-label="Main"] > ul');
@@ -47,6 +52,7 @@ function updateHeader() {
     item.append(button);
     navigation.prepend(item);
   }
+  updateAriaHeader();
   const mobileSearch = document.getElementById('search-bar-entry-mobile');
   if (mobileSearch) {
     mobileSearch.setAttribute('title', 'Search');

@@ -1,0 +1,35 @@
+name: shane-cv-aria
+services:
+  site:
+    image: shane-cv-aria:preview
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      CODEX_HOME: /app/data/auth
+      ARIA_KNOWLEDGE_DIR: /app/data/knowledge
+      ARIA_REFRESH_AUTH: "1"
+      ARIA_PREVIEW_BIND: 0.0.0.0
+      ARIA_PREVIEW_ORIGIN: https://aria.shaneholloman.dev
+      ARIA_SITE_ORIGIN: https://shaneholloman.dev
+    ports:
+      - "20.0.0.3:18082:8792"
+    volumes:
+      - ./data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 384m
+    healthcheck:
+      test: [CMD, bun, -e, "fetch('http://127.0.0.1:8791/status').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 20s
+      start_period: 20s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"

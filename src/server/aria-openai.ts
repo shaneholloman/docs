@@ -2,7 +2,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import WebSocket from 'ws';
-import { reasoningInstructions, voiceInstructions } from './aria-knowledge.ts';
+import { reasoningInstructions, voiceInstructions, voiceGreeting } from './aria-knowledge.ts';
 import { subscriptionReader } from './aria-auth.ts';
 import {
   voiceNames,
@@ -171,20 +171,24 @@ export async function askLuna(
   throw new Error('Aria reached the knowledge lookup limit. Please narrow the question.');
 }
 
-export async function connectVoice({
-  sdp,
-  knowledge,
-  voice = 'cove',
-  returning = false,
-  history = [],
-  onEvent,
-  onDelegation,
-  onClose,
-  signal
-}: VoiceInput): Promise<VoiceConnection> {
-  const auth = await readSubscription();
+export async function connectVoice(
+  {
+    sdp,
+    knowledge,
+    voice = 'cove',
+    returning = false,
+    history = [],
+    onEvent,
+    onDelegation,
+    onClose,
+    signal
+  }: VoiceInput,
+  request: typeof fetch = fetch,
+  subscription = readSubscription
+): Promise<VoiceConnection> {
+  const auth = await subscription();
   const sessionId = randomUUID();
-  const response = await fetch(`${base}/realtime/calls?intent=quicksilver&architecture=avas`, {
+  const response = await request(`${base}/realtime/calls?intent=quicksilver&architecture=avas`, {
     method: 'POST',
     headers: { ...headers(auth, sessionId), 'openai-alpha': 'quicksilver=v2' },
     body: JSON.stringify({
@@ -192,6 +196,20 @@ export async function connectVoice({
       session: {
         model: voiceModel,
         instructions: voiceInstructions(knowledge, returning, history),
+        // The subscription adapter calls startup input initial_items. Supply the
+        // greeting at creation, before media starts, as in native Aria.
+        initial_items: [
+          {
+            type: 'message',
+            role: 'developer',
+            content: [
+              {
+                type: 'input_text',
+                text: `This is a new call. Greet the caller now in English, before they speak. Say "${voiceGreeting(returning)}" once, then pause and listen. Do not wait for user input or resume an old transcript.`
+              }
+            ]
+          }
+        ],
         audio: { output: { voice } },
         delegation: { type: 'client' }
       }

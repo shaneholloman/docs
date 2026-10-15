@@ -213,6 +213,12 @@ now," then ends. The browser clears its visible transcript and stored ID; the
 next conversation uses a new anonymous ID. This deletes application-held data;
 it does not request deletion from OpenAI or erase external backups.
 
+Each voice call supplies a trusted developer greeting in the subscription's
+`initial_items` at session creation, matching native Aria's adapter. The greeting
+asks Aria to speak first, then listen. Recalled history does not replace that
+opening. The welcome-back decision uses the server record when a visitor ID is
+present, so clearing the database also resets the greeting despite a saved browser ID.
+
 Anonymous continuity uses a random UUID in browser local storage (`aria.visitorId`),
 saved after a successful conversation. It identifies that browser, not a verified
 person. Private browsing, clearing storage, and switching devices can create new

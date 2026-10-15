@@ -439,3 +439,37 @@ test('a failed deletion does not claim success or end the visitor conversation',
   assert.ok(memory.read(visitorId));
   await post(`/session/${session.id}/end`, {});
 });
+
+test('a database reset overrides the browser welcome-back hint', async (t) => {
+  const memory = createVisitorStore(':memory:');
+  const inputs: VoiceInput[] = [];
+  const { post } = await fixture(t, {
+    memory,
+    voiceConnect: async (input) => {
+      inputs.push(input);
+      return {
+        answerSdp: 'v=0\r\n',
+        sessionId: 'provider',
+        deliver: () => {},
+        speak: () => {},
+        close: () => {}
+      };
+    }
+  });
+  const visitorId = randomUUID();
+  const call = async () =>
+    sessionResultSchema.parse(
+      await (await post('/session', { sdp: 'v=0\r\n', returning: true, visitorId })).json()
+    );
+  const first = await call();
+  assert.equal(inputs[0].returning, false);
+  await post(`/session/${first.id}/end`, {});
+  const second = await call();
+  assert.equal(inputs[1].returning, true);
+  await post(`/session/${second.id}/end`, {});
+  memory.forget(visitorId);
+  const fresh = await call();
+  assert.equal(inputs[2].returning, false);
+  assert.deepEqual(inputs[2].history, []);
+  await post(`/session/${fresh.id}/end`, {});
+});

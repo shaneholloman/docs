@@ -327,7 +327,8 @@ export function createAriaServer({
           sdp: data.sdp,
           knowledge: material.text,
           voice: data.voice || 'cove',
-          returning: data.returning || Boolean(previous),
+          // A remembered browser ID alone is not a remembered conversation.
+          returning: data.visitorId ? Boolean(previous) : data.returning || false,
           history: [...session.history],
           signal: session.abort.signal,
           onEvent: (event) => {

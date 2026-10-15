@@ -35,7 +35,7 @@ npm run build:icons
 
 Content was adapted from
 [`shaneholloman/cv` • `RESUME.md`](https://github.com/shaneholloman/cv/blob/fdb7da300ef429de7e236ba81e07b972ae213175/RESUME.md).
-Dates and education entries follow that source, without inferring degree
+Education entries follow that source, without inferring degree
 completion. Content updates are manual.
 
 ## Preview and validate

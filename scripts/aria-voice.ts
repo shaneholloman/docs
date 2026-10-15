@@ -10,7 +10,8 @@ import {
   createAriaEntity,
   fitHeroEntity,
   bindAriaEntityHover,
-  cycleHeroDot
+  cycleHeroDot,
+  initializeSiteAccent
 } from './aria-entity.ts';
 export type AriaIconName = 'x' | 'mic' | 'mic-off' | 'phone-off' | 'chevron-right';
 interface Conversation {
@@ -47,6 +48,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
   const existing = controllers[controller];
   if (existing) return existing;
   const entity = createAriaEntity();
+  let accentInitialized = false;
   let heroButton: HTMLButtonElement | undefined;
   let heroFeedback: HTMLSpanElement | undefined;
   let activation: 'hero' | 'panel' = 'panel';
@@ -610,6 +612,12 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
   window.visualViewport?.addEventListener('scroll', fitViewport);
   const updateHeader = function () {
     if (!enabled()) return;
+    if (!accentInitialized) {
+      // The preview waits for Mintlify's header before calling this, so root
+      // theme changes happen after hydration, alongside the other UI updates.
+      initializeSiteAccent();
+      accentInitialized = true;
+    }
     const hero = document.querySelector<HTMLElement>('.cv-hero');
     if (hero && !hero.querySelector('.cv-aria-hero')) {
       heroButton = document.createElement('button');

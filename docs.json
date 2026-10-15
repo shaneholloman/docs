@@ -6,10 +6,10 @@
   "logo": "/favicon.svg",
   "favicon": "/favicon.svg",
   "icons": { "library": "lucide" },
-  "colors": { "primary": "#0D9373", "light": "#07C983", "dark": "#0D9373" },
+  "colors": { "primary": "#34d399", "light": "#34d399", "dark": "#34d399" },
   "fonts": {
     "heading": { "family": "Montserrat", "weight": 900 },
-    "body": { "family": "Roboto", "weight": 300 }
+    "body": { "family": "Roboto", "weight": 400 }
   },
   "navigation": { "pages": ["index"] },
   "navbar": {

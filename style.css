@@ -347,10 +347,12 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .cv-intro { margin-bottom: 38px; }
 .cv-role { letter-spacing: -.025em; }
 .cv-role span { display: block; color: var(--cv-muted); letter-spacing: -.01em; }
-.cv-profile { display: grid; grid-template-columns: 240px 1fr; gap: 56px; padding: 44px 0; border-bottom: 1px solid var(--cv-line); }
+.cv .cv-profile { display: block; padding: 44px 0; border-bottom: 1px solid var(--cv-line); }
+.cv .cv-profile > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
 .cv-label { color: var(--cv-accent); line-height: 1.5; }
-.cv-profile .cv-label { padding-top: 4px; }
-.cv-profile p + p { margin-top: 14px; color: var(--cv-muted); }
+/* Hide the previous heading when staging against the published Mintlify content. */
+.cv .cv-profile .cv-label { display: none; }
+.cv .cv-profile p + p { margin-top: 0; color: var(--cv-muted); }
 .cv-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 56px; padding: 44px 0 0; }
 .cv-sidebar { color: var(--cv-muted); }
 .cv-skill { margin-top: 26px; }
@@ -392,7 +394,8 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 @media (max-width: 800px) {
   :root { --cv-gutter: 24px; }
   .cv { padding: 38px var(--cv-gutter) 28px; }
-  .cv-profile, .cv-body, .cv-education { grid-template-columns: 190px minmax(0, 1fr); gap: 32px; }
+  .cv-body, .cv-education { grid-template-columns: 190px minmax(0, 1fr); gap: 32px; }
+  .cv .cv-profile > div { gap: 32px; }
 }
 @media (max-width: 1023px) {
   #content-container > div:has(> #content-area) { padding-top: 64px; }
@@ -425,9 +428,10 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
   .cv-hero:has(.cv-aria-hero) > .cv-intro { grid-column: 1 / -1; }
   .cv-aria-hero { grid-row: 1; left: 0; }
   .cv-surname { display: block; }
-  .cv-profile, .cv-body, .cv-education { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .cv-body, .cv-education { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .cv .cv-profile > div { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .cv-intro { margin-bottom: 26px; }
-  .cv-profile { padding: 30px 0; }
+  .cv .cv-profile { padding: 30px 0; }
   .cv-body { padding-top: 30px; gap: 36px; }
   .cv-skill { margin-top: 20px; }
   .cv-learning { margin-top: 26px; padding-top: 24px; }
@@ -448,8 +452,9 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
   .cv-hero h1 { --cv-name-size: 48pt; margin: 12px 0; }
   .cv-surname { display: inline; }
   .cv-intro { margin-bottom: 16px; }
-  .cv-profile, .cv-body, .cv-education { grid-template-columns: 150px minmax(0, 1fr); gap: 24px; padding-top: 20px; }
-  .cv-profile { padding-bottom: 20px; }
+  .cv-body, .cv-education { grid-template-columns: 150px minmax(0, 1fr); gap: 24px; padding-top: 20px; }
+  .cv .cv-profile { padding: 20px 0; }
+  .cv .cv-profile > div { gap: 24px; }
   .cv-job { padding: 16px 0; break-inside: avoid; }
   .cv-job-current { padding: 14px; margin-top: 14px; }
   .cv-label { break-after: avoid; }

@@ -53,8 +53,8 @@ function collectEntries() {
     if (element?.id && title)
       entries.push({ element, title: title.trim(), context, text: text?.trim() || '' });
   };
-  const profile = document.querySelector('.cv-profile');
-  add(document.getElementById('profile-heading'), 'Profile', 'About Shane', profile?.textContent);
+  const profile = document.querySelector<HTMLElement>('.cv-profile');
+  add(profile, 'Profile', 'About Shane', profile?.textContent);
   for (const heading of document.querySelectorAll<HTMLElement>(
     '.cv-label:not(#profile-heading):not(#learning-heading)'
   )) {

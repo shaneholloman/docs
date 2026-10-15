@@ -1,12 +1,4 @@
-import {
-  createElement,
-  BriefcaseBusiness,
-  Layers,
-  GraduationCap,
-  FingerprintPattern,
-  BookOpen,
-  History
-} from 'lucide';
+import { createElement, BriefcaseBusiness, Layers, GraduationCap, BookOpen, History } from 'lucide';
 import type { IconNode } from 'lucide';
 export type IconDefinition = [name: string, node: IconNode];
 export function renderIcon([name, node]: IconDefinition, className = '') {
@@ -22,7 +14,6 @@ export function replaceIcon(svg: Element | null, definition: IconDefinition) {
     svg.replaceWith(renderIcon(definition));
 }
 const headings: Record<string, IconDefinition> = {
-  'profile-heading': ['fingerprint-pattern', FingerprintPattern],
   'experience-heading': ['briefcase-business', BriefcaseBusiness],
   'expertise-heading': ['layers', Layers],
   'learning-heading': ['book-open', BookOpen],

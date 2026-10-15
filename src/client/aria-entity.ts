@@ -251,7 +251,7 @@ export function fitHeroEntity(hero: HTMLElement, button: HTMLButtonElement, svg:
     const mobile = window.matchMedia('(max-width: 600px)').matches;
     const bottom = mobile ? titleInk.bottom : ink(summary).bottom;
     const height = bottom - titleInk.top;
-    const size = mobile ? 64 : height * 1.25;
+    const size = (mobile ? 64 : height * 1.25) * 0.875;
     const next = `${size.toFixed(2)}px`,
       margin = `${(titleInk.top + (height - size) / 2 - hero.getBoundingClientRect().top).toFixed(2)}px`;
     if (button.style.width !== next) {

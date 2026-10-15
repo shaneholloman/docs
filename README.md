@@ -29,6 +29,11 @@ theme color. Other header icons match the 16px text size, with 40px item heights
 and 24px gaps.
 The library license is included in `LICENSE.lucide`.
 
+Body section headings use Lucide icons from `scripts/body-icons.mjs`: fingerprint
+for Profile, layers for Expertise, briefcase for Experience, book for Studies,
+history for Earlier & independent work, and graduation cap for Education. These
+decorative icons are 16px and inherit the heading color.
+
 The Lucide search control opens a local section search implemented in
 `scripts/cv-search.mjs`. It indexes the rendered CV content, ranks role and company
 matches ahead of body mentions, and links results to stable anchors in `index.mdx`.

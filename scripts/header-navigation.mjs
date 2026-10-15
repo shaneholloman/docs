@@ -3,6 +3,7 @@ import {
   EllipsisVertical, X, ArrowUpRight, ChevronRight, ArrowUp, Check, Search
 } from 'lucide';
 import { setupCvSearch } from './cv-search.mjs';
+import { updateBodyIcons } from './body-icons.mjs';
 
 const icons = {
   'https://github.com/shaneholloman': ['code-xml', CodeXml],
@@ -32,6 +33,7 @@ function replaceIcon(svg, definition) {
 }
 
 function updateHeader() {
+  updateBodyIcons();
   const navigation = document.querySelector('#navbar nav[aria-label="Main"] > ul');
   if (navigation && !navigation.querySelector('.cv-search-item')) {
     const item = document.createElement('li');

@@ -105,6 +105,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 100px; }
 #navbar button[aria-label="More actions"] svg { width: var(--header-icon-size); height: var(--header-icon-size); }
 .cv-inline-icon { display: inline-flex; vertical-align: middle; }
 .cv-inline-icon svg { display: block; width: 1em; height: 1em; }
+.cv-section-icon { display: inline-block; width: var(--cv-body-size); height: var(--cv-body-size); vertical-align: -2px; margin-right: 8px; }
 nav[aria-label="Mobile menu"] ul { display: flex; flex-wrap: wrap; gap: 8px var(--header-gap); }
 nav[aria-label="Mobile menu"] .navbar-link a { height: var(--header-item-height); padding: 0; }
 nav[aria-label="Mobile menu"] li:has(.cv-header-icon) { width: auto; }

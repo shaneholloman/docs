@@ -17,7 +17,7 @@
   --header-gap: 24px;
   --cv-paper: rgb(var(--background-light));
   --cv-ink: rgb(var(--gray-900));
-  --cv-muted: rgb(var(--gray-500));
+  --cv-muted: rgb(var(--gray-400));
   --cv-accent: rgb(var(--primary));
   --cv-line: rgb(var(--gray-200));
 }

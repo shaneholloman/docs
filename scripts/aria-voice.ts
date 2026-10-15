@@ -6,7 +6,12 @@ import {
   errorResultSchema
 } from './aria-contracts.ts';
 import type { AriaEvent } from './aria-contracts.ts';
-import { createAriaEntity, fitHeroEntity, bindAriaEntityHover } from './aria-entity.ts';
+import {
+  createAriaEntity,
+  fitHeroEntity,
+  bindAriaEntityHover,
+  cycleHeroDot
+} from './aria-entity.ts';
 export type AriaIconName = 'x' | 'mic' | 'mic-off' | 'phone-off' | 'chevron-right';
 interface Conversation {
   peer: RTCPeerConnection;
@@ -624,6 +629,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       hero.append(heroFeedback);
       fitHeroEntity(hero, heroButton, svg);
       bindAriaEntityHover(heroButton, svg);
+      cycleHeroDot(hero);
     }
     const search = document.querySelector('.cv-search-item');
     if (search && !search.parentElement?.querySelector('.cv-aria-item')) {

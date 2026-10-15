@@ -278,7 +278,7 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .cv-aria-hero.active { --aria-hover-light: 1; --aria-dot-hover: 1; transform: scale(1.005); opacity: 1; filter: drop-shadow(0 0 10px rgba(255, 255, 255, .3)); }
 .cv-aria-hero .cv-aria-entity [data-aria-part="background"] { stroke: color-mix(in srgb, var(--aria-hover-dot, var(--cv-ink)) calc(var(--aria-dot-hover) * 100%), color-mix(in srgb, var(--aria-rest-color), var(--cv-ink) calc(var(--aria-activity) * 100%))); }
 .cv-hero h1 { margin: 0 0 30px; letter-spacing: -.025em; line-height: .98; white-space: nowrap; }
-.cv-period { color: var(--cv-accent); font-size: .8em; margin-inline-start: .15em; }
+.cv-period { display: inline-block; width: var(--cv-entity-stroke-size, .15em); height: var(--cv-entity-stroke-size, .15em); margin-inline-start: .12em; border-radius: 50%; background-color: var(--cv-period-color, var(--cv-accent)); color: transparent; line-height: 0; overflow: hidden; vertical-align: baseline; transition: background-color 4s ease; }
 .cv-intro { margin-bottom: 38px; }
 .cv-role { letter-spacing: -.025em; }
 .cv-role span { display: block; color: var(--cv-muted); letter-spacing: -.01em; }
@@ -371,7 +371,7 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
   .cv-footer { gap: 12px 20px; }
   .cv-footer p { flex-basis: 100%; }
 }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .cv-period { transition: none; } }
 @media print {
   @page { size: A4; margin: 12mm; }
   html, body { background: white !important; }

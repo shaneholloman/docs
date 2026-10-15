@@ -8,6 +8,18 @@ type Meter = {
   samples: Float32Array<ArrayBuffer>;
 };
 type Part = 'visitor' | 'voice' | 'background';
+const entityColors = [
+  '#34d399',
+  '#60a5fa',
+  '#f87171',
+  '#a78bfa',
+  '#fbbf24',
+  '#2dd4bf',
+  '#fb923c',
+  '#c084fc',
+  '#fb7185',
+  '#22d3ee'
+] as const;
 
 export function createAriaEntity() {
   const marks = new Set<SVGSVGElement>();
@@ -135,18 +147,6 @@ export function createAriaEntity() {
 // The stroke-only hover boundary, colours and release delay come from uic.nz.
 // Keep hover separate from the native voice envelopes and the panel's entity.
 export function bindAriaEntityHover(button: HTMLButtonElement, svg: SVGSVGElement) {
-  const colors = [
-    '#34d399',
-    '#60a5fa',
-    '#f87171',
-    '#a78bfa',
-    '#fbbf24',
-    '#2dd4bf',
-    '#fb923c',
-    '#c084fc',
-    '#fb7185',
-    '#22d3ee'
-  ];
   let isHovering = false,
     focused = false;
   let hoverTimeout: ReturnType<typeof setTimeout> | undefined;
@@ -156,7 +156,7 @@ export function bindAriaEntityHover(button: HTMLButtonElement, svg: SVGSVGElemen
     isHovering = true;
     button.style.setProperty(
       '--aria-hover-dot',
-      colors[Math.floor(Math.random() * colors.length)]!
+      entityColors[Math.floor(Math.random() * entityColors.length)]!
     );
     button.classList.add('active');
   }
@@ -183,6 +183,34 @@ export function bindAriaEntityHover(button: HTMLButtonElement, svg: SVGSVGElemen
     focused = false;
     leave();
   });
+}
+
+export function cycleHeroDot(hero: HTMLElement) {
+  const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let previous = -1;
+  function pause() {
+    clearTimeout(timer);
+    timer = undefined;
+  }
+  function next() {
+    if (document.hidden || motion.matches) return;
+    // Never repeat a colour immediately, including when resuming the page.
+    const offset = 1 + Math.floor(Math.random() * (entityColors.length - 1));
+    previous = (previous + offset) % entityColors.length;
+    hero.style.setProperty('--cv-period-color', entityColors[previous]!);
+    timer = setTimeout(next, 6500);
+  }
+  function resume() {
+    pause();
+    if (motion.matches) hero.style.removeProperty('--cv-period-color');
+    else if (!document.hidden) timer = setTimeout(next, 1000);
+  }
+  document.addEventListener('visibilitychange', resume);
+  motion.addEventListener('change', resume);
+  window.addEventListener('pagehide', pause);
+  window.addEventListener('pageshow', resume);
+  resume();
 }
 
 export function fitHeroEntity(hero: HTMLElement, button: HTMLButtonElement, svg: SVGSVGElement) {
@@ -222,6 +250,12 @@ export function fitHeroEntity(hero: HTMLElement, button: HTMLButtonElement, svg:
       button.style.height = next;
     }
     if (button.style.marginTop !== margin) button.style.marginTop = margin;
+    // Both dimensions are SVG user units, so their ratio is the painted
+    // stroke thickness in CSS pixels at this responsive entity size.
+    const stroke = Number.parseFloat(getComputedStyle(svg).strokeWidth) || 2;
+    const dot = `${((stroke * size) / side).toFixed(3)}px`;
+    if (hero.style.getPropertyValue('--cv-entity-stroke-size') !== dot)
+      hero.style.setProperty('--cv-entity-stroke-size', dot);
   };
   const observer = new ResizeObserver(fit);
   observer.observe(hero);

@@ -31,7 +31,43 @@ const themes: Record<string, IconDefinition> = {
   light: ['sun', Sun],
   dark: ['moon', Moon]
 };
-const mobileLinks = new WeakSet();
+type ThemePreference = 'system' | 'light' | 'dark';
+
+function updateMobileThemes() {
+  for (const menu of document.querySelectorAll('nav[aria-label="Mobile menu"]')) {
+    const popover = menu.closest('[role="dialog"]');
+    if (!popover) continue;
+    let group = popover.querySelector<HTMLElement>('.cv-mobile-themes');
+    if (!group) {
+      group = document.createElement('div');
+      group.className = 'cv-mobile-themes';
+      group.setAttribute('role', 'group');
+      group.setAttribute('aria-label', 'Theme preference');
+      for (const preference of ['system', 'light', 'dark'] as const) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.themeChoice = preference;
+        const label = `${preference[0].toUpperCase()}${preference.slice(1)} theme`;
+        button.setAttribute('aria-label', label);
+        button.title = label;
+        button.append(renderIcon(themes[preference]));
+        button.addEventListener('click', () => setThemePreference(preference));
+        group.append(button);
+      }
+      popover.insertBefore(group, menu);
+    }
+    const selected = document.documentElement.getAttribute('data-theme-preference') || 'system';
+    for (const button of group.querySelectorAll<HTMLButtonElement>('button'))
+      button.setAttribute('aria-pressed', String(button.dataset.themeChoice === selected));
+  }
+}
+
+function setThemePreference(preference: ThemePreference) {
+  // Use Mintlify's persisted preference and storage listener so its theme
+  // provider, desktop control, OS preference, and reloads stay synchronized.
+  localStorage.setItem('isDarkMode', preference);
+  window.dispatchEvent(new StorageEvent('storage', { key: 'isDarkMode', newValue: preference }));
+}
 
 const updateAriaHeader = setupAria({
   icon: (name) =>
@@ -48,6 +84,7 @@ const updateAriaHeader = setupAria({
 });
 
 function updateHeader() {
+  updateMobileThemes();
   updateBodyIcons();
   for (const link of document.querySelectorAll('.navbar-link a[href$="#cv-search"]')) {
     link.classList.add('cv-header-search');
@@ -76,12 +113,6 @@ function updateHeader() {
       if (link.getAttribute('href') !== url.hash) link.setAttribute('href', url.hash);
       link.removeAttribute('target');
       link.removeAttribute('rel');
-      if (link.closest('nav[aria-label="Mobile menu"]') && !mobileLinks.has(link)) {
-        link.addEventListener('click', () =>
-          link.closest('[role="dialog"]')?.querySelector('button')?.click()
-        );
-        mobileLinks.add(link);
-      }
     } else if (icons[href]) {
       const label = link.textContent?.trim() || '';
       link.setAttribute('aria-label', label);
@@ -126,6 +157,17 @@ function updateHeader() {
 }
 
 setupThemeIcon();
+document.addEventListener(
+  'click',
+  (event) => {
+    const link =
+      event.target instanceof Element
+        ? event.target.closest('nav[aria-label="Mobile menu"] a')
+        : null;
+    link?.closest('[role="dialog"]')?.querySelector<HTMLButtonElement>('button')?.click();
+  },
+  true
+);
 setupSearch({
   searchIcon: () => renderIcon(['search', Search]),
   closeIcon: () => renderIcon(['x', X]),
@@ -133,3 +175,7 @@ setupSearch({
 });
 updateHeader();
 new MutationObserver(updateHeader).observe(document.body, { childList: true, subtree: true });
+new MutationObserver(updateMobileThemes).observe(document.documentElement, {
+  attributes: true,
+  attributeFilter: ['data-theme-preference']
+});

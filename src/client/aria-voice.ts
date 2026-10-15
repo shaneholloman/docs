@@ -603,7 +603,10 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       event.target instanceof Element ? event.target.closest<HTMLElement>('.cv-header-aria') : null;
     if (!trigger) return;
     event.preventDefault();
-    void open(trigger);
+    const returnTarget = trigger.closest('nav[aria-label="Mobile menu"]')
+      ? document.querySelector<HTMLElement>('#navbar button[aria-label="More actions"]') || trigger
+      : trigger;
+    void open(returnTarget);
   });
   window.addEventListener('pagehide', () => stop());
   window.visualViewport?.addEventListener('resize', fitViewport);

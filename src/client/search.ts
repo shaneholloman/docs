@@ -194,7 +194,10 @@ export function setupSearch({ searchIcon, closeIcon, resultIcon }: SearchIcons) 
     input.addEventListener('input', renderResults);
     input.addEventListener('keydown', (event) => {
       if (event.isComposing) return;
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        dialog.close();
+      } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault();
         setActive(active + (event.key === 'ArrowDown' ? 1 : -1), true);
       } else if (event.key === 'Enter') {

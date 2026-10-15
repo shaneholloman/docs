@@ -78,6 +78,13 @@ so the desktop header renders them in its initial HTML. CSS fixes control and
 text-link dimensions before hydration and font loading; the mobile header also
 reserves Aria's slot from first paint. Other header icons match the 16px text size, with 40px item heights
 and 24px gaps.
+The compact mobile menu includes system, light, and dark preferences with a
+selected state, three section links, and one row for search, Aria, and social
+icons. It uses Mintlify's persisted theme preference and storage listener so
+desktop controls, OS preference changes, and reloads stay synchronized.
+Choosing search or Aria closes the navigation before opening its conversation
+or search dialog. Experience entries put the role first, then dates, company,
+and description.
 The library license is included in `LICENSE.lucide`.
 
 Section headings and the browser favicon share `src/client/icons.ts`: fingerprint

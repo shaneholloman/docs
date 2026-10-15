@@ -7,6 +7,7 @@ import {
 } from '../shared/aria-contracts.ts';
 import type { AriaEvent } from '../shared/aria-contracts.ts';
 import { waveformAnalysisEnabled } from './aria-audio.ts';
+import { createVisitorMemory } from './aria-visitor.ts';
 import { audioDiagnosticsEnabled, createAudioDiagnostics } from './aria-diagnostics.ts';
 import {
   createAriaEntity,
@@ -52,6 +53,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     ? createAudioDiagnostics()
     : undefined;
   const entity = createAriaEntity(diagnostics?.observeContext);
+  const visitor = createVisitorMemory();
   let heroButton: HTMLButtonElement | undefined;
   let heroFeedback: HTMLSpanElement | undefined;
   let activation: 'hero' | 'panel' = 'panel';
@@ -183,7 +185,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     if (!answer) throw new Error('Aria did not finish its answer. Please try again.');
     return { answer };
   }
-  function stop(text = 'Conversation ended.') {
+  function stop(text = 'Conversation ended.', endRemote = true) {
     generation++;
     pending?.abort();
     pending = null;
@@ -200,7 +202,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       current.audio.pause();
       current.audio.srcObject = null;
       current.audio.remove();
-      if (current.id)
+      if (current.id && endRemote)
         void fetch(`${service}/session/${current.id}/end`, {
           method: 'POST',
           keepalive: true
@@ -218,6 +220,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
   }
   function receive(event: AriaEvent) {
     if (!conversation) return;
+    if (event.type === 'aria.ending') status.textContent = 'Wrapping up…';
     if (event.type === 'aria.caption' && event.delta) {
       if (!dialog.open) return;
       const role = event.role;
@@ -241,8 +244,11 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     if (event.type === 'aria.turn.done')
       status.textContent = conversation.muted ? 'Microphone muted.' : 'Listening…';
     if (event.type === 'aria.error') stop(event.message);
-    if (event.type === 'aria.closed' || event.type === 'session.closed')
-      stop('Conversation ended. Start again whenever you like.');
+    if (event.type === 'aria.closed' && event.reason === 'completed') {
+      stop('Conversation ended. Start again whenever you like.', false);
+      if (dialog.open) dialog.close();
+    } else if (event.type === 'aria.closed' || event.type === 'session.closed')
+      stop('Conversation ended. Start again whenever you like.', false);
   }
   async function connect() {
     if (conversation || connecting) {
@@ -328,7 +334,11 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
           change();
         });
       const result = sessionResultSchema.parse(
-        await request('/session', { sdp: peer.localDescription?.sdp, voice: 'cove' }, signal)
+        await request(
+          '/session',
+          { sdp: peer.localDescription?.sdp, voice: 'cove', returning: visitor.returning },
+          signal
+        )
       );
       if (currentGeneration !== generation) {
         void request(`/session/${result.id}/end`, {}).catch(() => {});
@@ -378,6 +388,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       });
       if (currentGeneration !== generation) return;
       connecting = false;
+      visitor.connected();
       status.textContent = 'Listening…';
       if (heroFeedback)
         heroFeedback.textContent =

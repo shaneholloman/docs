@@ -17,7 +17,8 @@ export const askRequestSchema = z.strictObject({
 });
 export const sessionRequestSchema = z.strictObject({
   sdp: z.string().startsWith('v=0').max(100_000),
-  voice: z.enum(voiceNames).optional()
+  voice: z.enum(voiceNames).optional(),
+  returning: z.boolean().optional()
 });
 export const searchArgumentsSchema = z.strictObject({ query: z.string().trim().min(1).max(300) });
 export const readArgumentsSchema = z.strictObject({ source: z.string().min(1).max(255) });
@@ -53,11 +54,12 @@ export const ariaEventSchema = z.discriminatedUnion('type', [
     timestamp: z.number()
   }),
   z.object({ type: z.literal('aria.error'), message: z.string() }),
+  z.object({ type: z.literal('aria.closed'), reason: z.literal('completed').optional() }),
   z.object({
     type: z.enum([
       'aria.thinking',
       'aria.ready',
-      'aria.closed',
+      'aria.ending',
       'aria.turn.done',
       'session.started',
       'session.closed',
@@ -156,6 +158,7 @@ export interface VoiceInput {
   sdp: string;
   knowledge: string;
   voice?: VoiceName;
+  returning?: boolean;
   signal?: AbortSignal;
   onEvent: (event: AriaEvent) => void;
   onDelegation: (id: string, prompt: string) => Promise<void>;

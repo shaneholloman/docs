@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadKnowledge } from './aria-knowledge.ts';
+import { createConversationEnding, parseConversationTool } from './aria-conversation.ts';
 import {
   askLuna,
   connectVoice,
@@ -54,6 +55,7 @@ interface Session {
   delegations: Set<string>;
   timer?: ReturnType<typeof setTimeout>;
   connection?: VoiceConnection;
+  ending?: ReturnType<typeof createConversationEnding>;
 }
 interface ServerOptions {
   knowledge?: () => Promise<KnowledgeMaterial>;
@@ -87,13 +89,14 @@ export function createAriaServer({
     if (session.events.length > 30) session.events.shift();
     for (const client of session.clients) client.write(`data: ${JSON.stringify(event)}\n\n`);
   };
-  const end = (session: Session) => {
+  const end = (session: Session, reason?: 'completed') => {
     if (session.closed) return;
-    emit(session, { type: 'aria.closed' });
+    emit(session, { type: 'aria.closed', ...(reason ? { reason } : {}) });
     session.closed = true;
     session.abort.abort();
     session.connection?.close();
     clearTimeout(session.timer);
+    session.ending?.dispose();
     for (const client of session.clients) client.end();
     sessions.delete(session.id);
   };
@@ -266,6 +269,7 @@ export function createAriaServer({
       };
       sessions.set(session.id, session);
       session.timer = setTimeout(() => end(session), sessionMilliseconds);
+      session.ending = createConversationEnding(() => end(session, 'completed'));
       res.on('close', () => {
         if (!res.writableFinished) end(session);
       });
@@ -274,10 +278,33 @@ export function createAriaServer({
           sdp: data.sdp,
           knowledge: material.text,
           voice: data.voice || 'cove',
+          returning: data.returning || false,
           signal: session.abort.signal,
-          onEvent: (event) => emit(session, event),
+          onEvent: (event) => {
+            emit(session, event);
+            session.ending?.observe(event);
+          },
           onClose: () => end(session),
           onDelegation: async (id, prompt) => {
+            if (session.closed) return;
+            try {
+              if (parseConversationTool(prompt)) {
+                const started = session.ending?.begin();
+                if (started) emit(session, { type: 'aria.ending' });
+                session.connection?.deliver(
+                  id,
+                  JSON.stringify({
+                    status: started ? 'ending' : 'already_ending',
+                    message: 'Say one brief goodbye. The conversation will close after you finish.'
+                  })
+                );
+                return;
+              }
+            } catch {
+              session.connection?.deliver(id, '{"error":"Invalid or unavailable voice tool."}');
+              return;
+            }
+            if (session.ending?.pending) return;
             if (session.closed || session.delegations.size >= 2) {
               session.connection?.deliver(id, 'Please ask one question at a time.');
               return;
@@ -295,12 +322,12 @@ export function createAriaServer({
                   if (!session.closed) emit(session, { type: 'aria.activity', magnitude });
                 }
               });
-              if (!session.closed) {
+              if (!session.closed && !session.ending?.pending) {
                 remember(session.history, prompt, answer);
                 session.connection?.deliver(id, answer);
               }
             } catch (error) {
-              if (!session.closed) {
+              if (!session.closed && !session.ending?.pending) {
                 session.connection?.deliver(
                   id,
                   'I could not look that up just now. Please try again.'
@@ -312,7 +339,7 @@ export function createAriaServer({
               }
             } finally {
               session.delegations.delete(id);
-              if (!session.closed && session.delegations.size === 0)
+              if (!session.closed && !session.ending?.pending && session.delegations.size === 0)
                 emit(session, { type: 'aria.ready' });
             }
           }

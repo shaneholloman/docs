@@ -9,7 +9,7 @@ import { createAriaServer } from '../src/server/aria-server.ts';
 import { loadKnowledge } from '../src/server/aria-knowledge.ts';
 import { chunks } from '../src/server/aria-openai.ts';
 import type { TestContext } from 'node:test';
-import type { AskInput } from '../src/shared/aria-contracts.ts';
+import type { AskInput, VoiceInput } from '../src/shared/aria-contracts.ts';
 import { sessionResultSchema } from '../src/shared/aria-contracts.ts';
 
 test('knowledge includes the complete CV and supplemental text without reading unrelated files', async () => {
@@ -187,4 +187,77 @@ test('the session deadline aborts pending provider setup', async (t) => {
   });
   void post('/session', { sdp: 'v=0\r\n' }).catch(() => {});
   await pendingAbort.promise;
+});
+
+test('the voice end tool signs off, closes only its own session and bypasses knowledge lookup', async (t) => {
+  const inputs: VoiceInput[] = [];
+  const delivered: string[][] = [];
+  const closed: number[] = [];
+  let lookups = 0;
+  const { base, post } = await fixture(t, {
+    ask: async () => {
+      lookups++;
+      return 'Shane worked at 8i.';
+    },
+    voiceConnect: async (input) => {
+      const index = inputs.push(input) - 1;
+      delivered[index] = [];
+      closed[index] = 0;
+      return {
+        answerSdp: 'v=0\r\n',
+        sessionId: `provider-${index}`,
+        deliver: (_id, text) => delivered[index].push(text),
+        speak: () => {},
+        close: () => closed[index]++
+      };
+    }
+  });
+  const first = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n', returning: true })).json()
+  );
+  const second = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n' })).json()
+  );
+  assert.equal(inputs[0].returning, true);
+  assert.equal(inputs[1].returning, false);
+  const events = await fetch(`${base}/session/${first.id}/events`);
+  const completed = events.text();
+  await inputs[0].onDelegation(
+    'invalid',
+    '<voice_tool>{"name":"shutdown","arguments":{}}</voice_tool>'
+  );
+  assert.match(delivered[0][0], /Invalid or unavailable/);
+  const tool = '<voice_tool>{"name":"end_conversation","arguments":{}}</voice_tool>';
+  await inputs[0].onDelegation('finish', tool);
+  await inputs[0].onDelegation('duplicate', tool);
+  await inputs[0].onDelegation('late-lookup', 'Look up another project while closing.');
+  assert.equal(JSON.parse(delivered[0][1]).status, 'ending');
+  assert.equal(JSON.parse(delivered[0][2]).status, 'already_ending');
+  assert.equal(lookups, 0);
+  inputs[0].onEvent({ type: 'aria.turn.done' });
+  assert.deepEqual(closed, [0, 0]);
+  inputs[0].onEvent({ type: 'aria.caption', role: 'assistant', delta: 'Goodbye!', timestamp: 1 });
+  inputs[0].onEvent({ type: 'output_audio_buffer.started' });
+  inputs[0].onEvent({ type: 'aria.turn.done' });
+  assert.deepEqual(closed, [0, 0]);
+  inputs[0].onEvent({ type: 'output_audio_buffer.stopped' });
+  const content = await completed;
+  assert.match(content, /"type":"aria.ending"/);
+  assert.match(content, /"type":"aria.closed","reason":"completed"/);
+  assert.deepEqual(closed, [1, 0]);
+  assert.equal((await post(`/session/${first.id}/end`, {})).status, 404);
+  await inputs[1].onDelegation('another-question', 'Thanks, one more question about Shane at 8i.');
+  assert.equal(lookups, 1);
+  assert.deepEqual(delivered[1], ['Shane worked at 8i.']);
+  assert.equal((await post(`/session/${second.id}/end`, {})).status, 200);
+  assert.deepEqual(closed, [1, 1]);
+});
+
+test('the returning-visitor hint must be a boolean and cannot carry identity or conversation data', async (t) => {
+  const { post } = await fixture(t);
+  assert.equal((await post('/session', { sdp: 'v=0\r\n', returning: 'true' })).status, 400);
+  assert.equal(
+    (await post('/session', { sdp: 'v=0\r\n', returning: true, name: 'Shane' })).status,
+    400
+  );
 });

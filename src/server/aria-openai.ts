@@ -175,6 +175,7 @@ export async function connectVoice({
   sdp,
   knowledge,
   voice = 'cove',
+  returning = false,
   onEvent,
   onDelegation,
   onClose,
@@ -189,7 +190,7 @@ export async function connectVoice({
       sdp,
       session: {
         model: voiceModel,
-        instructions: voiceInstructions(knowledge),
+        instructions: voiceInstructions(knowledge, returning),
         audio: { output: { voice } },
         delegation: { type: 'client' }
       }

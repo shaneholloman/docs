@@ -192,6 +192,23 @@ bypass the mobile waveform fallback; mobile calls still create no analysis
 AudioContext. Desktop diagnostic controls can suspend analysis or skip it for
 the next call without changing the live connection or microphone processing.
 
+Aria's voice agent has one application control tool, `end_conversation`, using
+the same strict client-delegation envelope as the native Aria app. Its prompt
+limits this to an explicit goodbye or request to end, not an ordinary thank-you,
+a quoted example, or a follow-up question. The tool ends only the caller's voice
+session. It waits for farewell output and playback completion, with a short
+WebRTC drain allowance for the subscription transport's turn-complete event.
+A 15-second fallback prevents a missing completion event from leaving the call
+open. The browser releases its microphone and closes the conversation panel;
+the CV stays open. Luna retains only its approved knowledge lookup tools.
+
+A successful voice connection saves only `aria.hasSpoken=1` in browser local
+storage. Later calls from that browser request a welcome-back greeting. Failed
+connections do not set the flag. This is a local greeting preference, not verified
+caller identity or cross-device recognition, and stores no audio or conversation
+history. Private browsing, clearing storage, or switching browsers can reset it;
+a shared browser can show the same welcome to another person.
+
 Aria uses your existing **ChatGPT subscription login**, read by the local service
 from Codex's auth store. Sign in or refresh that login with `codex login`.
 The prototype never uses an API key and never sends your OAuth credentials to

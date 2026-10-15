@@ -297,7 +297,7 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .cv-job { padding: 28px 0; border-bottom: 1px solid var(--cv-line); }
 .cv-job-current { margin-top: 24px; padding: 24px; border: 1px solid rgb(var(--primary) / .2); border-radius: 3px; background: rgb(var(--primary) / .05); }
 .cv-job-meta { display: flex; align-items: center; gap: 14px; color: var(--cv-accent); }
-.cv-current { line-height: 1.8; text-transform: uppercase; letter-spacing: .08em; padding: 1px 7px; background: rgb(var(--primary) / .1); border-radius: 3px; }
+.cv-current { line-height: 1.8; text-transform: none; font-weight: 300; letter-spacing: .08em; padding: 1px 7px; background: rgb(var(--primary) / .1); border-radius: 3px; }
 .cv-job h3 { margin-top: 5px; line-height: 1.35; letter-spacing: -.035em; }
 .cv-date { margin-top: 7px !important; margin-bottom: 16px !important; color: var(--cv-muted); }
 .cv-job ul { list-style: disc; padding-left: 18px; }

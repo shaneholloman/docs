@@ -303,7 +303,24 @@ the packaged native Guide query engine and a read-only Bun SQLite FTS5 index.
 Both tools are read-only. They cannot browse, run commands, read arbitrary paths,
 follow symlinks or access credentials. Tool rounds share a 45-second deadline, with at
 most five model calls and twelve tool executions per answer. Encrypted reasoning
-and function-call IDs are replayed across the stateless model calls.
+and function-call IDs are replayed across the stateless model calls. The last
+bounded round synthesizes the retrieved evidence with tool use disabled. Logical
+completion uses OpenAI’s terminal event without waiting for HTTP EOF.
+
+Luna keeps one correlation ID and `prompt_cache_key` across delegated and typed
+questions within an active voice session. This follows the native Aria adapter’s
+subscription route, without API-only cache-retention settings. OpenAI’s reported
+input and cached-token counts are recorded with lookup timings. These are prompt
+cache hits, not persisted Responses sessions or a guarantee of lower subscription
+usage. The HTTP transport still replays context; it does not use the separate
+connection-local WebSocket response cache.
+
+Lookup failures use a non-terminal `aria.lookup.error` event and preserve the
+voice connection for follow-up questions. Fatal transport errors remain separate.
+While a lookup is pending, eight-second progress updates use native Live’s
+commentary channel on the original delegation, preserving the final-result route.
+Lifecycle logs include phases, timings, tool names and token counts, without
+transcripts, visitor identifiers or credentials.
 
 ```text
 index.mdx -> Markdown -> XML resume + supplemental index

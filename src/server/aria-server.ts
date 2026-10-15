@@ -66,19 +66,33 @@ interface Session {
   lookups: Set<AbortController>;
 }
 interface ServerOptions {
+  observe?: (event: {
+    phase: string;
+    elapsedMs?: number;
+    source?: string;
+    tool?: string;
+    error?: string;
+    code?: number;
+    inputTokens?: number;
+    cachedTokens?: number;
+    outputTokens?: number;
+  }) => void;
   knowledge?: () => Promise<KnowledgeMaterial>;
   subscription?: typeof readSubscription;
   ask?: (input: AskInput) => Promise<string>;
   voiceConnect?: (input: VoiceInput) => Promise<VoiceConnection>;
   sessionMilliseconds?: number;
+  lookupProgressMilliseconds?: number;
   memory?: VisitorStore;
 }
 export function createAriaServer({
+  observe,
   knowledge: providedKnowledge,
   subscription = readSubscription,
   ask = askLuna,
   voiceConnect = connectVoice,
   sessionMilliseconds = 5 * 60_000,
+  lookupProgressMilliseconds = 8000,
   memory = createVisitorStore(
     process.env.ARIA_MEMORY_DB || join(root, 'data/memory/visitors.sqlite')
   )
@@ -111,8 +125,13 @@ export function createAriaServer({
     if (session.events.length > 30) session.events.shift();
     for (const client of session.clients) client.write(`data: ${JSON.stringify(event)}\n\n`);
   };
-  const end = (session: Session, reason?: 'completed' | 'forgotten') => {
+  const end = (session: Session, reason?: 'completed' | 'forgotten', source = 'manual') => {
     if (session.closed) return;
+    observe?.({
+      phase: 'session.closed',
+      source,
+      elapsedMs: session.startedAt ? Date.now() - session.startedAt : undefined
+    });
     emit(session, { type: 'aria.closed', ...(reason ? { reason } : {}) });
     session.closed = true;
     session.abort.abort();
@@ -270,6 +289,7 @@ export function createAriaServer({
             lookup: material.lookup,
             history,
             signal: abort.signal,
+            sessionId: session?.id,
             onActivity: (magnitude) => {
               if (streaming) send({ type: 'aria.activity', magnitude });
               else if (session && !session.closed)
@@ -326,12 +346,12 @@ export function createAriaServer({
         delegations: new Set()
       };
       sessions.set(session.id, session);
-      session.timer = setTimeout(() => end(session), sessionMilliseconds);
+      session.timer = setTimeout(() => end(session, undefined, 'deadline'), sessionMilliseconds);
       session.ending = createConversationEnding(() =>
-        end(session, session.forgotten ? 'forgotten' : 'completed')
+        end(session, session.forgotten ? 'forgotten' : 'completed', 'farewell')
       );
       res.on('close', () => {
-        if (!res.writableFinished) end(session);
+        if (!res.writableFinished) end(session, undefined, 'setup-disconnected');
       });
       try {
         session.connection = await voiceConnect({
@@ -360,11 +380,16 @@ export function createAriaServer({
             emit(session, event);
             session.ending?.observe(event);
           },
-          onClose: () => end(session, session.forgotten ? 'forgotten' : undefined),
+          onClose: (detail) => {
+            observe?.({ phase: 'provider.closed', code: detail?.code });
+            end(session, session.forgotten ? 'forgotten' : undefined, 'provider');
+          },
           onDelegation: async (id, prompt) => {
             if (session.closed) return;
+            observe?.({ phase: 'delegation.received' });
             try {
               const tool = parseConversationTool(prompt);
+              if (tool) observe?.({ phase: 'control.requested', tool: tool.name });
               if (tool?.name === 'VisitorMemoryDelete') {
                 if (session.forgotten) {
                   session.connection?.deliver(id, '{"status":"already_cleared"}');
@@ -425,9 +450,33 @@ export function createAriaServer({
               return;
             }
             session.delegations.add(id);
+            const lookupStarted = performance.now();
+            const report = (
+              phase: string,
+              detail: {
+                tool?: string;
+                error?: string;
+                inputTokens?: number;
+                cachedTokens?: number;
+                outputTokens?: number;
+              } = {}
+            ) =>
+              observe?.({
+                phase,
+                elapsedMs: Math.round(performance.now() - lookupStarted),
+                ...detail
+              });
+            report('lookup.started');
             const lookup = new AbortController();
             session.lookups.add(lookup);
             emit(session, { type: 'aria.thinking' });
+            const progress = setInterval(() => {
+              if (!session.closed && !session.ending?.pending && !lookup.signal.aborted)
+                session.connection?.progress?.(
+                  id,
+                  'I’m still checking the relevant documentation.'
+                );
+            }, lookupProgressMilliseconds);
             try {
               const answer = await ask({
                 prompt,
@@ -435,26 +484,34 @@ export function createAriaServer({
                 lookup: material.lookup,
                 history: session.history,
                 signal: AbortSignal.any([session.abort.signal, lookup.signal]),
+                sessionId: session.id,
+                onTool: (tool) => report('lookup.tool', { tool }),
+                onUsage: (usage) => report('lookup.usage', usage),
                 onActivity: (magnitude) => {
                   if (!session.closed && !session.forgotten)
                     emit(session, { type: 'aria.activity', magnitude });
                 }
               });
               if (!session.closed && !session.ending?.pending) {
+                report('lookup.completed');
                 session.connection?.deliver(id, answer);
               }
             } catch (error) {
+              report('lookup.failed', {
+                error: error instanceof Error ? error.message.slice(0, 180) : 'Unknown lookup error'
+              });
               if (!session.closed && !session.ending?.pending) {
                 session.connection?.deliver(
                   id,
                   'I could not look that up just now. Please try again.'
                 );
                 emit(session, {
-                  type: 'aria.error',
+                  type: 'aria.lookup.error',
                   message: error instanceof Error ? error.message : 'Knowledge lookup failed.'
                 });
               }
             } finally {
+              clearInterval(progress);
               session.lookups.delete(lookup);
               session.delegations.delete(id);
               if (!session.closed && !session.ending?.pending && session.delegations.size === 0)
@@ -470,7 +527,7 @@ export function createAriaServer({
         if (session.visitorId) memory.connected(session.visitorId, data.profile);
         json(res, 200, { id: session.id, sdp: session.connection.answerSdp });
       } catch (error) {
-        end(session);
+        end(session, undefined, 'setup-failed');
         throw error;
       }
     } catch (error) {
@@ -486,7 +543,7 @@ export function createAriaServer({
     }
   });
   server.on('close', () => {
-    for (const session of sessions.values()) end(session);
+    for (const session of sessions.values()) end(session, undefined, 'server-shutdown');
     for (const abort of activeRequests.keys()) abort.abort();
     memory.close();
     guide?.close();
@@ -495,7 +552,9 @@ export function createAriaServer({
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const server = createAriaServer();
+  const server = createAriaServer({
+    observe: (event) => console.info('Aria lifecycle:', JSON.stringify(event))
+  });
   server.listen(8791, '127.0.0.1', () =>
     console.log('Aria local service: http://127.0.0.1:8791 • ChatGPT subscription only')
   );

@@ -211,6 +211,124 @@ test('Luna executes search then read and replays matching outputs and encrypted 
   });
 });
 
+test('Luna finishes at the terminal event without waiting for HTTP EOF and reports cache usage', async () => {
+  let cancelled = false;
+  const usage: unknown[] = [];
+  const request: typeof fetch = Object.assign(
+    async (_url: unknown, options?: RequestInit) => {
+      const body = JSON.parse(String(options?.body));
+      expect(body.prompt_cache_key).toBe('stable-session');
+      expect(body.store).toBe(false);
+      expect(body.prompt_cache_retention).toBeUndefined();
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              new TextEncoder().encode(
+                'data: ' +
+                  JSON.stringify({
+                    type: 'response.created',
+                    response: { status: 'in_progress', output: [], usage: null }
+                  }) +
+                  '\n\n'
+              )
+            );
+            controller.enqueue(
+              new TextEncoder().encode(
+                'data: ' +
+                  JSON.stringify({
+                    type: 'response.completed',
+                    response: {
+                      status: 'completed',
+                      output: [
+                        {
+                          type: 'message',
+                          role: 'assistant',
+                          content: [{ type: 'output_text', text: 'Grounded answer.' }]
+                        }
+                      ],
+                      usage: {
+                        input_tokens: 2000,
+                        output_tokens: 20,
+                        input_tokens_details: { cached_tokens: 1800 }
+                      }
+                    }
+                  }) +
+                  '\n\n'
+              )
+            );
+            // Deliberately leave the transport open after logical completion.
+          },
+          cancel() {
+            cancelled = true;
+          }
+        })
+      );
+    },
+    { preconnect: fetch.preconnect }
+  );
+  const answer = await Promise.race([
+    askLuna(
+      {
+        prompt: 'Hello',
+        knowledge: '<resume />',
+        sessionId: 'stable-session',
+        onUsage: (value) => usage.push(value)
+      },
+      request,
+      subscription
+    ),
+    Bun.sleep(100).then(() => {
+      throw new Error('Waited for HTTP EOF after response.completed');
+    })
+  ]);
+  expect(answer).toBe('Grounded answer.');
+  expect(cancelled).toBe(true);
+  expect(usage).toEqual([{ inputTokens: 2000, cachedTokens: 1800, outputTokens: 20 }]);
+});
+
+test('the final bounded Luna round synthesizes retrieved evidence instead of requesting another lookup', async () => {
+  await fixture(async (material) => {
+    let calls = 0;
+    const request: typeof fetch = Object.assign(
+      async (_url: unknown, options?: RequestInit) => {
+        const body = JSON.parse(String(options?.body));
+        if (++calls < 5)
+          return completed([
+            {
+              type: 'function_call',
+              call_id: `page-${calls}`,
+              name: 'KnowledgeQuery',
+              arguments: '{"mode":"page","page":"resume"}'
+            }
+          ]);
+        expect(body.tools).toEqual([]);
+        expect(body.tool_choice).toBe('none');
+        expect(body.instructions).toContain('Answer now from the evidence already retrieved');
+        expect(
+          body.input.filter((item: ResponseItem) => item.type === 'function_call_output').length
+        ).toBe(4);
+        return completed([
+          {
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'output_text', text: 'Shane built Aria.' }]
+          }
+        ]);
+      },
+      { preconnect: fetch.preconnect }
+    );
+    expect(
+      await askLuna(
+        { prompt: 'Explain Aria', knowledge: material.text, lookup: material.lookup },
+        request,
+        subscription
+      )
+    ).toBe('Shane built Aria.');
+    expect(calls).toBe(5);
+  });
+});
+
 test('Luna limits repeated tool calls and honors cancellation between rounds', async () => {
   await fixture(async (material) => {
     let count = 0;

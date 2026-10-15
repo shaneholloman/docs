@@ -269,6 +269,11 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     if (event.type === 'output_audio_buffer.started') status.textContent = 'Aria is speaking…';
     if (event.type === 'aria.turn.done')
       status.textContent = conversation.muted ? 'Microphone muted.' : 'Listening…';
+    if (event.type === 'aria.lookup.error') {
+      entity.working(false);
+      status.textContent = event.message;
+      if (heroFeedback) heroFeedback.textContent = event.message;
+    }
     if (event.type === 'aria.error') stop(event.message);
     if (event.type === 'aria.closed' && event.reason === 'completed') {
       stop('Conversation ended. Start again whenever you like.', false);

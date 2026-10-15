@@ -74,6 +74,10 @@ export const ariaEventSchema = z.discriminatedUnion('type', [
     delta: z.string(),
     timestamp: z.number()
   }),
+  z.object({
+    type: z.literal('aria.lookup.error'),
+    message: z.string()
+  }),
   z.object({ type: z.literal('aria.error'), message: z.string() }),
   z.object({
     type: z.literal('aria.closed'),
@@ -128,7 +132,21 @@ export type ResponseItem = z.infer<typeof responseItemSchema>;
 export const responseStreamEventSchema = z.object({
   type: z.string(),
   delta: z.string().optional(),
-  response: z.object({ status: z.string(), output: z.array(responseItemSchema) }).optional()
+  response: z
+    .object({
+      status: z.string(),
+      output: z.array(responseItemSchema),
+      usage: z
+        .object({
+          input_tokens: z.number().nonnegative().optional(),
+          output_tokens: z.number().nonnegative().optional(),
+          input_tokens_details: z
+            .object({ cached_tokens: z.number().nonnegative().optional() })
+            .nullish()
+        })
+        .nullish()
+    })
+    .optional()
 });
 export const liveEventSchema = z.object({
   type: z.string(),
@@ -176,12 +194,14 @@ export interface AskInput {
   lookup?: KnowledgeLookup;
   onTool?: (name: string, args: unknown) => void;
   onActivity?: (magnitude: number) => void;
+  onUsage?: (usage: { inputTokens?: number; cachedTokens?: number; outputTokens?: number }) => void;
 }
 export interface VoiceConnection {
   answerSdp: string;
   sessionId: string;
   deliver: (id: string, text: string) => void;
   speak: (text: string) => void;
+  progress?: (id: string, text: string) => void;
   close: () => void;
 }
 export interface VoiceInput {
@@ -193,5 +213,5 @@ export interface VoiceInput {
   signal?: AbortSignal;
   onEvent: (event: AriaEvent) => void;
   onDelegation: (id: string, prompt: string) => Promise<void>;
-  onClose: () => void;
+  onClose: (detail?: { code: number; reason: string }) => void;
 }

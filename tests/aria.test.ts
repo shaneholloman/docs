@@ -192,6 +192,58 @@ test('the session deadline aborts pending provider setup', async (t) => {
   await pendingAbort.promise;
 });
 
+test('a failed delegated lookup leaves the same voice session open for a successful follow-up', async (t) => {
+  let voice: VoiceInput | undefined;
+  let closed = 0;
+  let attempts = 0;
+  const delivered: string[] = [];
+  const observations: string[] = [];
+  const cacheSessions: Array<string | undefined> = [];
+  const { base, post } = await fixture(t, {
+    observe: (event) => observations.push(event.phase),
+    ask: async (input) => {
+      cacheSessions.push(input.sessionId);
+      if (++attempts === 1) throw new Error('Lookup deadline exceeded');
+      return 'Aria is Shane’s agent platform.';
+    },
+    voiceConnect: async (input) => {
+      voice = input;
+      return {
+        answerSdp: 'v=0\r\n',
+        sessionId: 'provider',
+        deliver: (_id, text) => delivered.push(text),
+        speak: () => {},
+        close: () => closed++
+      };
+    }
+  });
+  const session = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n' })).json()
+  );
+  const events = await fetch(`${base}/session/${session.id}/events`);
+  const content = events.text();
+  await voice!.onDelegation('first', 'Tell me about the Aria platform.');
+  assert.equal(closed, 0);
+  assert.equal(voice!.signal?.aborted, false);
+  assert.match(delivered[0], /could not look that up/);
+  await voice!.onDelegation('follow-up', 'Tell me about Aria again.');
+  assert.equal(closed, 0);
+  assert.equal(delivered[1], 'Aria is Shane’s agent platform.');
+  assert.ok(observations.includes('lookup.failed'));
+  assert.ok(observations.includes('lookup.completed'));
+  assert.deepEqual(cacheSessions, [session.id, session.id]);
+  assert.equal(
+    (await post('/ask', { prompt: 'A typed follow-up', sessionId: session.id })).status,
+    200
+  );
+  assert.deepEqual(cacheSessions, [session.id, session.id, session.id]);
+  await post(`/session/${session.id}/end`, {});
+  const body = await content;
+  assert.match(body, /"type":"aria.lookup.error"/);
+  assert.doesNotMatch(body, /"type":"aria.error"|"type":"aria.ending"/);
+  assert.equal(closed, 1);
+});
+
 test('the voice end tool signs off, closes only its own session and bypasses knowledge lookup', async (t) => {
   const memory = createVisitorStore(':memory:');
   const visitorId = randomUUID();
@@ -266,6 +318,50 @@ test('the voice end tool signs off, closes only its own session and bypasses kno
   assert.deepEqual(delivered[1], ['Shane worked at 8i.']);
   assert.equal((await post(`/session/${second.id}/end`, {})).status, 200);
   assert.deepEqual(closed, [1, 1]);
+});
+
+test('pending lookup progress keeps its delegation identity and does not consume the final answer', async (t) => {
+  const answer = Promise.withResolvers<string>();
+  const firstProgress = Promise.withResolvers<void>();
+  const progress: Array<[string, string]> = [];
+  const delivered: Array<[string, string]> = [];
+  let voice: VoiceInput | undefined;
+  let closed = 0;
+  const { post } = await fixture(t, {
+    lookupProgressMilliseconds: 5,
+    ask: async () => answer.promise,
+    voiceConnect: async (input) => {
+      voice = input;
+      return {
+        answerSdp: 'v=0\r\n',
+        sessionId: 'provider',
+        speak: () => {},
+        close: () => closed++,
+        progress: (id, text) => {
+          progress.push([id, text]);
+          firstProgress.resolve();
+        },
+        deliver: (id, text) => delivered.push([id, text])
+      };
+    }
+  });
+  const session = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n' })).json()
+  );
+  const lookup = voice!.onDelegation('original-delegation', 'Explain the platform');
+  await firstProgress.promise;
+  assert.equal(closed, 0);
+  assert.deepEqual(delivered, []);
+  assert.ok(
+    progress.every(([id, text]) => id === 'original-delegation' && text.includes('checking'))
+  );
+  answer.resolve('Aria is Shane’s agent platform.');
+  await lookup;
+  assert.deepEqual(delivered, [['original-delegation', 'Aria is Shane’s agent platform.']]);
+  const count = progress.length;
+  await Bun.sleep(20);
+  assert.equal(progress.length, count);
+  await post(`/session/${session.id}/end`, {});
 });
 
 test('the returning-visitor hint must be a boolean and cannot carry identity or conversation data', async (t) => {

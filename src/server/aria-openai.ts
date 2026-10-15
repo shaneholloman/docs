@@ -75,15 +75,17 @@ export async function askLuna(
     sessionId = randomUUID(),
     lookup,
     onTool,
-    onActivity
+    onActivity,
+    onUsage
   }: AskInput,
   request: typeof fetch = fetch,
   subscription = readSubscription
 ): Promise<string> {
-  const auth = await subscription();
   const deadline = signal
     ? AbortSignal.any([signal, AbortSignal.timeout(45_000)])
     : AbortSignal.timeout(45_000);
+  const auth = await subscription();
+  deadline.throwIfAborted();
   const input: ResponseItem[] = [
     ...history.slice(-16),
     { type: 'message', role: 'user', content: [{ type: 'input_text', text: prompt }] }
@@ -97,9 +99,15 @@ export async function askLuna(
         model: reasoningModel,
         store: false,
         stream: true,
-        instructions: reasoningInstructions(knowledge, lookup?.instructions),
+        instructions:
+          reasoningInstructions(knowledge, lookup?.instructions) +
+          (round === 4
+            ? '\nAnswer now from the evidence already retrieved. Do not request more tools. If the evidence is insufficient, explain exactly what remains unknown.'
+            : ''),
         input,
-        tools: lookup?.tools || [],
+        tools: round === 4 ? [] : lookup?.tools || [],
+        ...(round === 4 ? { tool_choice: 'none' } : {}),
+        prompt_cache_key: sessionId,
         reasoning: { effort: 'low' },
         include: ['reasoning.encrypted_content']
       }),
@@ -112,7 +120,7 @@ export async function askLuna(
     let output: ResponseItem[] = [];
     const decoder = new TextDecoder();
     if (!response.body) throw new Error('Luna did not return a response stream.');
-    for await (const bytes of response.body) {
+    events: for await (const bytes of response.body) {
       buffer = (buffer + decoder.decode(bytes, { stream: true })).replaceAll('\r\n', '\n');
       let end;
       while ((end = buffer.indexOf('\n\n')) !== -1) {
@@ -140,6 +148,15 @@ export async function askLuna(
               .filter((item) => item.type === 'output_text')
               .map((item) => item.text || '')
               .join('');
+          const usage = event.response?.usage;
+          if (usage)
+            onUsage?.({
+              inputTokens: usage.input_tokens,
+              cachedTokens: usage.input_tokens_details?.cached_tokens,
+              outputTokens: usage.output_tokens
+            });
+          // The completed event is authoritative. Do not wait for HTTP EOF.
+          break events;
         }
       }
     }
@@ -295,7 +312,9 @@ export async function connectVoice(
       });
     }
   });
-  socket.on('close', onClose);
+  socket.on('close', (code, reason) =>
+    onClose({ code, reason: String(reason).replaceAll(auth.token, '[redacted]').slice(0, 180) })
+  );
   socket.on('error', () =>
     onEvent({
       type: 'aria.error',
@@ -337,6 +356,15 @@ export async function connectVoice(
         send({
           type: 'delegation.context.append',
           delegation_item_id: id,
+          content: [{ type: 'input_text', text: part }]
+        });
+    },
+    progress: (id, text) => {
+      for (const part of chunks(text))
+        send({
+          type: 'delegation.context.append',
+          delegation_item_id: id,
+          channel: 'commentary',
           content: [{ type: 'input_text', text: part }]
         });
     },

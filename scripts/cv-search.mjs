@@ -123,6 +123,7 @@ export function setupCvSearch({ searchIcon, closeIcon, resultIcon }) {
     status.setAttribute('aria-live', 'polite');
     list = document.createElement('div');
     list.id = 'cv-search-results';
+    list.tabIndex = -1;
     list.setAttribute('role', 'listbox');
     list.setAttribute('aria-label', 'Matching CV sections');
     const help = document.createElement('p');
@@ -139,6 +140,16 @@ export function setupCvSearch({ searchIcon, closeIcon, resultIcon }) {
       } else if (event.key === 'Enter') {
         event.preventDefault();
         select(results[active]);
+      }
+    });
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return;
+      if (event.shiftKey && document.activeElement === input) {
+        event.preventDefault();
+        close.focus();
+      } else if (!event.shiftKey && document.activeElement === close) {
+        event.preventDefault();
+        input.focus();
       }
     });
     dialog.addEventListener('click', (event) => {

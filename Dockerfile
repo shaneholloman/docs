@@ -9,5 +9,6 @@ COPY dist/ ./dist/
 COPY index.mdx ./
 USER bun
 ENV NODE_ENV=production
+ENV BUN_INSTALL_CACHE_DIR=/tmp/bun-cache
 EXPOSE 8792
 CMD ["bun", "dist/server/aria-runtime.js"]

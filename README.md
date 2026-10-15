@@ -387,13 +387,17 @@ Build on the Mac for the Synology's Linux x86-64 architecture. Never build on
 the NAS. The Compose project has no build directive and uses its own directory,
 `/volume1/docker/shane-cv-aria`, separate from Lina and other services.
 The runtime is Bun 1.4.3, pinned by image digest. Aria and its gateway run on Bun;
-the bundled Codex CLI supplies the headless login flow. Run `bun run test`
+the bundled Codex CLI supplies the headless login flow. Bun’s cache directory
+uses ephemeral `/tmp` so the application filesystem stays read-only.
+`bun run check:container` verifies the Linux image with the same read-only root
+and temporary filesystem, with networking disabled and no subscription calls. Run `bun run test`
 to check the service, token renewal, SSE and WebSocket proxy on Bun.
 
 ```sh
 bun install --frozen-lockfile
 bun run build
 docker buildx build --network host --platform linux/amd64 -t shane-cv-aria:preview --load .
+bun run check:container
 mkdir -p /Volumes/tank/build-artifacts/shane-cv-aria
 docker image save --platform linux/amd64 -o /Volumes/tank/build-artifacts/shane-cv-aria/preview.tar shane-cv-aria:preview
 ```

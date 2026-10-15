@@ -16,7 +16,8 @@
     "test:live": "bun tools/aria-smoke.ts",
     "format": "oxfmt src tools tests tsconfig.json package.json .oxfmtrc.json",
     "format:check": "oxfmt --check src tools tests tsconfig.json package.json .oxfmtrc.json",
-    "guide:sync": "bun tools/guide-sync.ts"
+    "guide:sync": "bun tools/guide-sync.ts",
+    "check:container": "bun tools/check-container.ts"
   },
   "dependencies": {
     "@shane/aria-guide": "./vendor/aria-guide-0.0.0-468da3b0.84c2c77c2568bc8c.tgz",

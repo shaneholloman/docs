@@ -3,6 +3,7 @@ import http from 'node:http';
 import { once } from 'node:events';
 import { z } from 'zod';
 import { statusSchema, answerResultSchema } from '../src/shared/aria-contracts.ts';
+import { createVisitorStore } from '../src/server/aria-memory.ts';
 import type * as Server from '../src/server/aria-server.ts';
 import type * as Gateway from '../src/server/aria-preview.ts';
 
@@ -33,6 +34,7 @@ const gatewayModule = (await import(
   new URL('../dist/server/aria-preview.js', import.meta.url).href
 )) as typeof Gateway;
 const server = serverModule.createAriaServer({
+  memory: createVisitorStore(':memory:'),
   subscription: async () => ({ token: 'offline-release-fixture' }),
   ask: async ({ knowledge }) => {
     assert.match(knowledge, /Shane Holloman/);

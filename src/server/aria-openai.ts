@@ -176,6 +176,7 @@ export async function connectVoice({
   knowledge,
   voice = 'cove',
   returning = false,
+  history = [],
   onEvent,
   onDelegation,
   onClose,
@@ -190,7 +191,7 @@ export async function connectVoice({
       sdp,
       session: {
         model: voiceModel,
-        instructions: voiceInstructions(knowledge, returning),
+        instructions: voiceInstructions(knowledge, returning, history),
         audio: { output: { voice } },
         delegation: { type: 'client' }
       }
@@ -256,8 +257,11 @@ export async function connectVoice({
       event.type === 'output_audio_buffer.stopped'
     )
       onEvent({ type: event.type });
-    if (event.type === 'turn.done' && event.turn?.role === 'assistant')
-      onEvent({ type: 'aria.turn.done' });
+    if (event.type === 'turn.done' && ['user', 'assistant'].includes(event.turn?.role || ''))
+      onEvent({
+        type: event.turn?.role === 'assistant' ? 'aria.turn.done' : 'aria.user.turn.done',
+        transcript: event.turn?.transcript?.slice(0, 12000)
+      });
     if (event.type === 'error') {
       const detail = String(event.error?.message || '')
         .replaceAll(auth.token, '[redacted]')

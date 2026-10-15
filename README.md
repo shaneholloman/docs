@@ -202,12 +202,30 @@ A 15-second fallback prevents a missing completion event from leaving the call
 open. The browser releases its microphone and closes the conversation panel;
 the CV stays open. Luna retains only its approved knowledge lookup tools.
 
-A successful voice connection saves only `aria.hasSpoken=1` in browser local
-storage. Later calls from that browser request a welcome-back greeting. Failed
-connections do not set the flag. This is a local greeting preference, not verified
-caller identity or cross-device recognition, and stores no audio or conversation
-history. Private browsing, clearing storage, or switching browsers can reset it;
-a shared browser can show the same welcome to another person.
+Anonymous continuity uses a random UUID in browser local storage (`aria.visitorId`),
+saved after a successful conversation. It identifies that browser, not a verified
+person. Private browsing, clearing storage, and switching devices can create new
+identities; a shared browser can recall another person's recent questions.
+
+Bun's native `bun:sqlite` stores memory in persistent `data/memory/visitors.sqlite`
+(or `ARIA_MEMORY_DB`). There is no ORM or external database service. WAL mode,
+FULL synchronous writes, prepared statements and transactions protect durability.
+Visitor keys are hashed in the database. Records expire after 30 inactive days,
+retain at most 16 text turns of 6,000 characters each, and are capped at 1,000
+visitors. Expiry runs at startup, hourly, and when sessions begin. Completed
+voice transcripts and successful typed exchanges supply context for both agents;
+tool payloads and audio are not stored. Recalled text is XML-encoded and stays
+separate from approved facts about Shane. No public history-listing endpoint is
+exposed, and a live session cannot be used with another visitor's ID.
+
+A bounded technical profile records the browser-reported user agent, language,
+timezone, screen and viewport dimensions, pixel ratio and touch support. Logical
+processor count and approximate memory are optional when the browser exposes
+them. Session counts and aggregate call duration are recorded separately. These
+are diagnostic reports, not verified hardware specifications or identification.
+The application does not retain IP addresses, device labels, voiceprints or audio
+fingerprints. Technical metadata is never included in the agents' knowledge
+context. The database stays outside the image and survives NAS redeployments.
 
 Aria uses your existing **ChatGPT subscription login**, read by the local service
 from Codex's auth store. Sign in or refresh that login with `codex login`.

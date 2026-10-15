@@ -52,6 +52,7 @@ export function createConversationEnding(
       }
       if (event.type === 'aria.caption' && event.role === 'assistant' && event.delta.trim())
         outputStarted = true;
+      if (event.type === 'aria.turn.done' && event.transcript?.trim()) outputStarted = true;
       // An empty turn completing the delegation is not the spoken farewell.
       if (!outputStarted) return;
       if (event.type === 'output_audio_buffer.stopped' || event.type === 'aria.turn.done') {

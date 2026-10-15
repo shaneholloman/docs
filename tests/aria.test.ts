@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { randomUUID } from 'node:crypto';
 import http from 'node:http';
 import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -8,6 +9,7 @@ import { join } from 'node:path';
 import { createAriaServer } from '../src/server/aria-server.ts';
 import { loadKnowledge } from '../src/server/aria-knowledge.ts';
 import { chunks } from '../src/server/aria-openai.ts';
+import { createVisitorStore } from '../src/server/aria-memory.ts';
 import type { TestContext } from 'node:test';
 import type { AskInput, VoiceInput } from '../src/shared/aria-contracts.ts';
 import { sessionResultSchema } from '../src/shared/aria-contracts.ts';
@@ -51,6 +53,7 @@ async function fixture(
   overrides: NonNullable<Parameters<typeof createAriaServer>[0]> = {}
 ) {
   const server = createAriaServer({
+    memory: createVisitorStore(':memory:'),
     knowledge: async () => ({
       text: 'Shane is IT Manager at 8i.',
       count: 1,
@@ -260,4 +263,56 @@ test('the returning-visitor hint must be a boolean and cannot carry identity or 
     (await post('/session', { sdp: 'v=0\r\n', returning: true, name: 'Shane' })).status,
     400
   );
+});
+
+test('voice and typed follow-ups recover only the matching anonymous visitor history', async (t) => {
+  const inputs: VoiceInput[] = [];
+  const asked: AskInput[] = [];
+  const memory = createVisitorStore(':memory:');
+  const { post, base } = await fixture(t, {
+    memory,
+    ask: async (input) => {
+      asked.push(input);
+      return 'Shane led infrastructure at 8i.';
+    },
+    voiceConnect: async (input) => {
+      inputs.push(input);
+      return {
+        answerSdp: 'v=0\r\n',
+        sessionId: 'provider',
+        deliver: () => {},
+        speak: () => {},
+        close: () => {}
+      };
+    }
+  });
+  const visitorId = randomUUID(),
+    other = randomUUID();
+  const first = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n', visitorId })).json()
+  );
+  assert.equal(inputs[0].returning, false);
+  inputs[0].onEvent({ type: 'aria.user.turn.done', transcript: 'Tell me about his time at 8i.' });
+  inputs[0].onEvent({ type: 'aria.turn.done', transcript: 'He was IT Manager at 8i.' });
+  await post(`/session/${first.id}/end`, {});
+  const second = sessionResultSchema.parse(
+    await (await post('/session', { sdp: 'v=0\r\n', visitorId })).json()
+  );
+  assert.equal(inputs[1].returning, true);
+  assert.equal(inputs[1].history?.length, 2);
+  assert.equal(inputs[1].history?.[0].content?.[0].text, 'Tell me about his time at 8i.');
+  assert.equal(
+    (await post('/ask', { prompt: 'Follow up', sessionId: second.id, visitorId: other })).status,
+    404
+  );
+  await post('/ask', { prompt: 'What did that role involve?', visitorId });
+  assert.equal(asked[0].history?.[0].content?.[0].text, 'Tell me about his time at 8i.');
+  await post('/ask', { prompt: 'Introduce Shane', visitorId: other });
+  assert.equal(asked[1].history?.length, 2); // This visitor's own completed exchange only.
+  assert.equal(asked[1].history?.[0].content?.[0].text, 'Introduce Shane');
+  assert.equal(memory.read(visitorId)?.history.length, 4);
+  assert.equal(memory.read(other)?.history.length, 2);
+  const status = await (await fetch(`${base}/status`)).text();
+  assert.doesNotMatch(status, /visitorId|history|Tell me about his time/);
+  await post(`/session/${second.id}/end`, {});
 });

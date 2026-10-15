@@ -11,14 +11,36 @@ export const voiceNames = [
   'arbor',
   'sol'
 ] as const;
+export const visitorIdSchema = z.uuid();
+const dimensionsSchema = z.strictObject({
+  width: z.number().int().min(0).max(20000),
+  height: z.number().int().min(0).max(20000)
+});
+export const visitorProfileSchema = z.strictObject({
+  userAgent: z.string().max(1024),
+  language: z.string().max(64),
+  languages: z.array(z.string().max(64)).max(8),
+  timezone: z.string().max(128),
+  screen: dimensionsSchema,
+  viewport: dimensionsSchema,
+  pixelRatio: z.number().positive().max(10),
+  touchPoints: z.number().int().min(0).max(100),
+  logicalProcessors: z.number().int().positive().max(1024).optional(),
+  approximateMemoryGB: z.number().positive().max(1024).optional()
+});
+export type VisitorProfile = z.infer<typeof visitorProfileSchema>;
 export const askRequestSchema = z.strictObject({
   prompt: z.string().trim().min(1).max(2000),
-  sessionId: z.uuid().optional()
+  sessionId: z.uuid().optional(),
+  visitorId: visitorIdSchema.optional(),
+  profile: visitorProfileSchema.optional()
 });
 export const sessionRequestSchema = z.strictObject({
   sdp: z.string().startsWith('v=0').max(100_000),
   voice: z.enum(voiceNames).optional(),
-  returning: z.boolean().optional()
+  returning: z.boolean().optional(),
+  visitorId: visitorIdSchema.optional(),
+  profile: visitorProfileSchema.optional()
 });
 export const searchArgumentsSchema = z.strictObject({ query: z.string().trim().min(1).max(300) });
 export const readArgumentsSchema = z.strictObject({ source: z.string().min(1).max(255) });
@@ -56,11 +78,14 @@ export const ariaEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('aria.error'), message: z.string() }),
   z.object({ type: z.literal('aria.closed'), reason: z.literal('completed').optional() }),
   z.object({
+    type: z.enum(['aria.turn.done', 'aria.user.turn.done']),
+    transcript: z.string().max(12000).optional()
+  }),
+  z.object({
     type: z.enum([
       'aria.thinking',
       'aria.ready',
       'aria.ending',
-      'aria.turn.done',
       'session.started',
       'session.closed',
       'output_audio_buffer.started',
@@ -112,7 +137,7 @@ export const liveEventSchema = z.object({
       content: z.array(z.object({ type: z.string(), text: z.string().optional() })).optional()
     })
     .optional(),
-  turn: z.object({ role: z.string().optional() }).optional(),
+  turn: z.object({ role: z.string().optional(), transcript: z.string().optional() }).optional(),
   error: z
     .object({
       message: z.string().optional(),
@@ -159,6 +184,7 @@ export interface VoiceInput {
   knowledge: string;
   voice?: VoiceName;
   returning?: boolean;
+  history?: ResponseItem[];
   signal?: AbortSignal;
   onEvent: (event: AriaEvent) => void;
   onDelegation: (id: string, prompt: string) => Promise<void>;

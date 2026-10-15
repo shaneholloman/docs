@@ -4,6 +4,8 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadKnowledge } from './aria-knowledge.ts';
 import { createConversationEnding, parseConversationTool } from './aria-conversation.ts';
+import { createVisitorStore } from './aria-memory.ts';
+import type { VisitorStore } from './aria-memory.ts';
 import {
   askLuna,
   connectVoice,
@@ -56,6 +58,9 @@ interface Session {
   timer?: ReturnType<typeof setTimeout>;
   connection?: VoiceConnection;
   ending?: ReturnType<typeof createConversationEnding>;
+  visitorId?: string;
+  startedAt?: number;
+  transcripts: { user: string; assistant: string };
 }
 interface ServerOptions {
   knowledge?: () => Promise<KnowledgeMaterial>;
@@ -63,6 +68,7 @@ interface ServerOptions {
   ask?: (input: AskInput) => Promise<string>;
   voiceConnect?: (input: VoiceInput) => Promise<VoiceConnection>;
   sessionMilliseconds?: number;
+  memory?: VisitorStore;
 }
 export function createAriaServer({
   knowledge = () =>
@@ -73,7 +79,10 @@ export function createAriaServer({
   subscription = readSubscription,
   ask = askLuna,
   voiceConnect = connectVoice,
-  sessionMilliseconds = 5 * 60_000
+  sessionMilliseconds = 5 * 60_000,
+  memory = createVisitorStore(
+    process.env.ARIA_MEMORY_DB || join(root, 'data/memory/visitors.sqlite')
+  )
 }: ServerOptions = {}) {
   const sessions = new Map<string, Session>();
   const activeRequests = new Set<AbortController>();
@@ -97,6 +106,8 @@ export function createAriaServer({
     session.connection?.close();
     clearTimeout(session.timer);
     session.ending?.dispose();
+    if (session.visitorId && session.startedAt)
+      memory.ended(session.visitorId, Date.now() - session.startedAt);
     for (const client of session.clients) client.end();
     sessions.delete(session.id);
   };
@@ -106,6 +117,19 @@ export function createAriaServer({
       { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: answer }] }
     );
     if (history.length > 16) history.splice(0, history.length - 16);
+  };
+  const transcript = (session: Session, role: 'user' | 'assistant', text: string) => {
+    const value = text.trim().slice(0, 6000);
+    if (!value) return;
+    const previous = session.history.at(-1);
+    if (previous?.role === role && previous.content?.[0]?.text === value) return;
+    session.history.push({
+      type: 'message',
+      role,
+      content: [{ type: role === 'user' ? 'input_text' : 'output_text', text: value }]
+    });
+    if (session.history.length > 16) session.history.splice(0, session.history.length - 16);
+    if (session.visitorId) memory.append(session.visitorId, role, value);
   };
   const server = http.createServer(async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
@@ -206,7 +230,15 @@ export function createAriaServer({
         activeRequests.add(abort);
         res.on('close', () => abort.abort());
         const session = data.sessionId ? sessions.get(data.sessionId) : undefined;
-        const history = session?.history || [];
+        if (data.sessionId && (!session || session.visitorId !== data.visitorId)) {
+          activeRequests.delete(abort);
+          json(res, 404, { error: 'This conversation is unavailable.' });
+          return;
+        }
+        const history =
+          session?.history ||
+          (data.visitorId ? memory.read(data.visitorId)?.history : undefined) ||
+          [];
         const streaming = req.headers.accept?.includes('text/event-stream');
         const send = (event: unknown) => {
           if (!res.destroyed) res.write(`data: ${JSON.stringify(event)}\n\n`);
@@ -228,7 +260,13 @@ export function createAriaServer({
                 emit(session, { type: 'aria.activity', magnitude });
             }
           });
+          abort.signal.throwIfAborted();
           remember(history, data.prompt, answer);
+          if (data.visitorId) {
+            memory.append(data.visitorId, 'user', data.prompt);
+            memory.append(data.visitorId, 'assistant', answer);
+            memory.profile(data.visitorId, data.profile);
+          }
           session?.connection?.speak(answer);
           if (streaming) {
             send({ type: 'aria.answer', answer });
@@ -258,12 +296,15 @@ export function createAriaServer({
         });
         return;
       }
+      const previous = data.visitorId ? memory.read(data.visitorId) : undefined;
       const session: Session = {
         id: randomUUID(),
         abort: new AbortController(),
         clients: new Set(),
         events: [],
-        history: [],
+        history: previous?.history || [],
+        visitorId: data.visitorId,
+        transcripts: { user: '', assistant: '' },
         closed: false,
         delegations: new Set()
       };
@@ -278,9 +319,20 @@ export function createAriaServer({
           sdp: data.sdp,
           knowledge: material.text,
           voice: data.voice || 'cove',
-          returning: data.returning || false,
+          returning: data.returning || Boolean(previous),
+          history: [...session.history],
           signal: session.abort.signal,
           onEvent: (event) => {
+            if (session.closed) return;
+            if (event.type === 'aria.caption')
+              session.transcripts[event.role] = (
+                session.transcripts[event.role] + event.delta
+              ).slice(0, 6000);
+            if (event.type === 'aria.turn.done' || event.type === 'aria.user.turn.done') {
+              const role = event.type === 'aria.turn.done' ? 'assistant' : 'user';
+              transcript(session, role, event.transcript || session.transcripts[role]);
+              session.transcripts[role] = '';
+            }
             emit(session, event);
             session.ending?.observe(event);
           },
@@ -323,7 +375,6 @@ export function createAriaServer({
                 }
               });
               if (!session.closed && !session.ending?.pending) {
-                remember(session.history, prompt, answer);
                 session.connection?.deliver(id, answer);
               }
             } catch (error) {
@@ -348,6 +399,8 @@ export function createAriaServer({
           session.connection.close();
           throw new Error('Voice connection cancelled.');
         }
+        session.startedAt = Date.now();
+        if (data.visitorId) memory.connected(data.visitorId, data.profile);
         json(res, 200, { id: session.id, sdp: session.connection.answerSdp });
       } catch (error) {
         end(session);
@@ -368,6 +421,7 @@ export function createAriaServer({
   server.on('close', () => {
     for (const session of sessions.values()) end(session);
     for (const abort of activeRequests) abort.abort();
+    memory.close();
   });
   return server;
 }

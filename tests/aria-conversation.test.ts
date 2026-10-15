@@ -74,3 +74,15 @@ test('a missing farewell cannot leave the microphone session open indefinitely',
   await Bun.sleep(20);
   expect(finished).toBe(1);
 });
+
+test('a completed spoken transcript can finish the farewell when caption events are absent', async () => {
+  let finished = 0;
+  const ending = createConversationEnding(() => finished++, {
+    turnMilliseconds: 5,
+    timeoutMilliseconds: 1000
+  });
+  ending.begin();
+  ending.observe({ type: 'aria.turn.done', transcript: 'Thanks for visiting. Goodbye!' });
+  await Bun.sleep(20);
+  expect(finished).toBe(1);
+});

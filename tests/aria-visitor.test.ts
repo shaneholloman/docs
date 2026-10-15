@@ -13,9 +13,12 @@ test('a successful call enables the welcome-back preference across page loads', 
   first.connected();
   expect(first.returning).toBe(true);
   expect(createVisitorMemory(storage).returning).toBe(true);
-  expect([...data]).toEqual([['aria.hasSpoken', '1']]);
+  expect(createVisitorMemory(storage).id).toBe(first.id);
+  expect([...data]).toEqual([['aria.visitorId', first.id]]);
+  expect(first.id).toMatch(/^[a-f0-9-]{36}$/);
   data.clear();
   expect(createVisitorMemory(storage).returning).toBe(false);
+  expect(createVisitorMemory(storage).id).not.toBe(first.id);
 });
 
 test('blocked storage never prevents calls, and repeat calls still work within the page', () => {

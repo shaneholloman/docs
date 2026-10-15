@@ -7,7 +7,7 @@ import {
 } from '../shared/aria-contracts.ts';
 import type { AriaEvent } from '../shared/aria-contracts.ts';
 import { waveformAnalysisEnabled } from './aria-audio.ts';
-import { createVisitorMemory } from './aria-visitor.ts';
+import { createVisitorMemory, visitorProfile } from './aria-visitor.ts';
 import { audioDiagnosticsEnabled, createAudioDiagnostics } from './aria-diagnostics.ts';
 import {
   createAriaEntity,
@@ -153,7 +153,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     const response = await fetch(`${service}/ask`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-      body: JSON.stringify({ prompt, sessionId }),
+      body: JSON.stringify({ prompt, sessionId, visitorId: visitor.id, profile: visitorProfile() }),
       signal
     });
     if (!response.ok)
@@ -336,7 +336,13 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       const result = sessionResultSchema.parse(
         await request(
           '/session',
-          { sdp: peer.localDescription?.sdp, voice: 'cove', returning: visitor.returning },
+          {
+            sdp: peer.localDescription?.sdp,
+            voice: 'cove',
+            returning: visitor.returning,
+            visitorId: visitor.id,
+            profile: visitorProfile()
+          },
           signal
         )
       );
@@ -511,6 +517,7 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
       const currentGeneration = generation;
       try {
         const result = await askInText(prompt, conversation?.id, AbortSignal.timeout(50_000));
+        visitor.connected();
         if (dialog.open && currentGeneration === generation) {
           if (!conversation) message('assistant', result.answer);
           status.textContent = conversation ? 'Listening…' : 'Ready to talk.';

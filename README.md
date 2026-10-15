@@ -50,6 +50,10 @@ npm ci
 npm run build:icons
 ```
 
+The build minifies whitespace and identifiers while preserving statement syntax,
+so the generated bundle passes Oxlint's `no-unused-expressions` rule. Check the
+source and generated JavaScript with `npm run lint`; warnings fail this check.
+
 Content was adapted from
 [`shaneholloman/cv` • `RESUME.md`](https://github.com/shaneholloman/cv/blob/fdb7da300ef429de7e236ba81e07b972ae213175/RESUME.md).
 Education entries follow that source, without inferring degree

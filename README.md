@@ -28,16 +28,18 @@ format validation, offline tests, browser and server bundling, and an offline
 smoke test of the built server artifacts through the gateway. That smoke test
 checks the complete CV, a typed answer, browser assets, and artifact hashes.
 The client distribution contains this application's browser enhancements;
-Mintlify builds and hosts the surrounding CV site. Mintlify requires custom
-JavaScript in its content root, so `header.js` is a generated copy of
+Mintlify builds and hosts the surrounding CV site. Mintlify loads custom
+JavaScript from its published content directory; `header.js` is a generated copy of
 `dist/client/header.js`. The NAS serves its browser assets directly from
 `dist/client`; editable JavaScript does not remain at the site root.
 The Docker image packages both distributions and runs
 `bun dist/server/aria-runtime.js`; application source and tests are excluded.
 Neither building nor offline validation needs OpenAI credentials.
 
-GitHub Actions repeats this release gate and verifies the committed Mintlify
-assets match their TypeScript sources. `.mintignore` excludes application source,
+When repository Actions is enabled, the checked-in workflow repeats this release
+gate and verifies the committed Mintlify assets match their TypeScript sources.
+Publishing through Mintlify and the NAS Docker pipeline does not depend on Actions.
+`.mintignore` excludes application source,
 server artifacts, tests, and tooling from Mintlify's published content.
 
 ## Content

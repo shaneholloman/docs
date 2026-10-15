@@ -46,10 +46,10 @@ export function setupCvSearch({ searchIcon, closeIcon, resultIcon }) {
   let returnFocus;
 
   function select(entry) {
-    if (!entry?.element.isConnected) return;
+    const target = entry && document.getElementById(entry.element.id);
+    if (!target) return;
     returnFocus = null;
     dialog.close();
-    const target = entry.element;
     target.tabIndex = -1;
     history.pushState(null, '', `#${target.id}`);
     requestAnimationFrame(() => {

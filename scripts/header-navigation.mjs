@@ -1,7 +1,8 @@
 import {
   createElement, CodeXml, ContactRound, Mail, Monitor, Sun, Moon,
-  EllipsisVertical, X, ArrowUpRight, ArrowUp, Check, Search
+  EllipsisVertical, X, ArrowUpRight, ArrowRight, ArrowUp, Check, Search
 } from 'lucide';
+import { setupCvSearch } from './cv-search.mjs';
 
 const icons = {
   'https://github.com/shaneholloman': ['code-xml', CodeXml],
@@ -41,7 +42,6 @@ function updateHeader() {
     button.setAttribute('aria-label', 'Open search');
     button.setAttribute('title', 'Search');
     button.append(renderIcon(['search', Search]));
-    button.addEventListener('click', () => document.getElementById('search-bar-entry')?.click());
     item.append(button);
     navigation.prepend(item);
   }
@@ -102,5 +102,10 @@ function updateHeader() {
   }
 }
 
+setupCvSearch({
+  searchIcon: () => renderIcon(['search', Search]),
+  closeIcon: () => renderIcon(['x', X]),
+  resultIcon: () => renderIcon(['arrow-right', ArrowRight])
+});
 updateHeader();
 new MutationObserver(updateHeader).observe(document.body, { childList: true, subtree: true });

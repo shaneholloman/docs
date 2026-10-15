@@ -29,6 +29,13 @@ theme color. Other header icons match the 16px text size, with 40px item heights
 and 24px gaps.
 The library license is included in `LICENSE.lucide`.
 
+The Lucide search control opens a local section search implemented in
+`scripts/cv-search.mjs`. It indexes the rendered CV content, ranks role and company
+matches ahead of body mentions, and links results to stable anchors in `index.mdx`.
+Selecting a result closes the dialog and scrolls to that entry below the header.
+It supports keyboard navigation, Command/Ctrl+K, and works without a Mintlify login.
+Run `node --test scripts/cv-search.test.mjs` to check search matching and ranking.
+
 After changing the header script, rebuild the checked-in browser bundle:
 
 ```sh

@@ -6,6 +6,7 @@ import {
   errorResultSchema
 } from '../shared/aria-contracts.ts';
 import type { AriaEvent } from '../shared/aria-contracts.ts';
+import { captureConstraints } from './aria-audio.ts';
 import {
   createAriaEntity,
   fitHeroEntity,
@@ -250,30 +251,29 @@ export function setupAria({ icon }: { icon: (name: AriaIconName) => SVGElement }
     controls();
     status.textContent = 'Connecting…';
     if (heroFeedback) heroFeedback.textContent = 'Connecting to Aria.';
-    entity.prepareAudio();
     let stream: MediaStream | undefined,
       peer: RTCPeerConnection | undefined,
       audio: HTMLAudioElement | undefined;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        audio: captureConstraints(navigator.userAgent)
       });
       if (currentGeneration !== generation) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
-      entity.input(stream);
       peer = new RTCPeerConnection();
       audio = document.createElement('audio');
       audio.autoplay = true;
       audio.hidden = true;
       audio.setAttribute('data-aria-audio', '');
-      dialog.append(audio);
+      // Keep playback in the document even when the voice-only panel is closed.
+      document.body.append(audio);
       for (const track of stream.getTracks()) peer.addTrack(track, stream);
+      entity.observe(peer);
       peer.addEventListener('track', (event) => {
         if (!audio) return;
         audio.srcObject = event.streams[0] || new MediaStream([event.track]);
-        entity.output(audio.srcObject as MediaStream);
         void audio.play().catch(() => {
           if (currentGeneration === generation)
             status.textContent = 'Your browser blocked audio. End and restart the conversation.';

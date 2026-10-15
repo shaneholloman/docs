@@ -23,6 +23,13 @@ header.js       Generated browser bundle committed for Mintlify
 ```
 
 `bun run dev` builds and watches browser TypeScript and runs the local services.
+It starts Mintlify against a temporary content directory outside the repository,
+containing only the CV, configuration, browser bundle, CSS, and two SVGs.
+The local CLI scans JavaScript recursively and does not apply `.mintignore` to
+that scan, so server distributions must stay outside its preview directory.
+Only changed website assets are synchronized; release builds and private data
+cannot trigger preview reloads or get injected into the browser. The temporary
+directory is removed when development stops. Mintlify's CLI runs on Bun too.
 `bun run build` is the release gate: strict type checking, source audit, lint,
 format validation, offline tests, browser and server bundling, and an offline
 smoke test of the built server artifacts through the gateway. That smoke test
@@ -141,8 +148,8 @@ when the panel closes.
 The entity preserves native Aria's 45 ms attack, 260 ms release, 220 ms background
 pulse decay, speech normalization and event-magnitude response. The centre ring
 meters the visitor, the outer arcs meter Aria, and the top dot follows Luna's
-real streaming activity. The middle arcs stay steady. Silent Web Audio analysis
-branches leave the direct WebRTC audio path intact. Colours follow the current
+real streaming activity. The middle arcs stay steady. Read-only WebRTC statistics
+leave the direct audio path intact. Colours follow the current
 theme. The desktop entity is 25% taller than the name-to-summary text span and
 centred vertically across that span, with a small leftward offset. Mobile uses
 a smaller mark centred beside the name.
@@ -155,8 +162,20 @@ The hover highlight blends back into the live voice levels over 0.5 seconds on
 exit, rather than switching stroke colours abruptly. The selected dot colour
 stays set until its contribution has faded out. Voice levels are not delayed
 by CSS stroke transitions.
-Voice metering continues independently. Save browser verification screenshots
-outside this project: Mintlify watches project files and may reload during calls.
+Voice metering reads WebRTC's existing audio statistics every 50 ms, including
+interval audio energy when a browser omits `audioLevel`. It does not create a
+Web Audio context, connect capture to the speakers, or reroute playback for the
+animation. The native attack and release envelopes run independently on animation
+frames. During a call the Entity uses full opacity and full-contrast active strokes;
+its resting gray and hover treatment remain separate.
+
+iOS 27 has a reported WebKit regression in simultaneous echo-cancelled capture
+and playback ([326286](https://bugs.webkit.org/show_bug.cgi?id=326286)). On that
+version only, capture disables browser voice processing. Other platforms keep
+echo cancellation, noise suppression, and automatic gain control. This workaround
+needs an actual iPhone listening check; desktop emulation cannot validate its
+audio quality. Disabling echo cancellation can allow speaker bleed and can change
+the iPhone's output route or volume.
 
 Aria uses your existing **ChatGPT subscription login**, read by the local service
 from Codex's auth store. Sign in or refresh that login with `codex login`.

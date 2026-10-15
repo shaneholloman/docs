@@ -1,17 +1,11 @@
 import iconSource from '../../aria.svg' with { type: 'text' };
 import {
-  voiceLevel,
+  createAudioStatsMeter,
   followEnvelope,
   backgroundPulse,
   strokeBrightness
 } from '../shared/aria-activity.ts';
 
-type Meter = {
-  source: MediaStreamAudioSourceNode;
-  analyser: AnalyserNode;
-  sink: GainNode;
-  samples: Float32Array<ArrayBuffer>;
-};
 type Part = 'visitor' | 'voice' | 'background';
 const entityColors = [
   '#34d399',
@@ -28,8 +22,10 @@ const entityColors = [
 
 export function createAriaEntity() {
   const marks = new Set<SVGSVGElement>();
-  let context: AudioContext | undefined;
-  let input: Meter | undefined, output: Meter | undefined;
+  const meter = createAudioStatsMeter();
+  let peer: RTCPeerConnection | undefined;
+  let levels = { visitor: 0, voice: 0 };
+  let poll: ReturnType<typeof setTimeout> | undefined;
   let muted = false,
     working = false,
     impulse = 0;
@@ -42,18 +38,24 @@ export function createAriaEntity() {
     const value = String(strokeBrightness(level));
     for (const svg of marks) svg.style.setProperty(`--aria-${part}`, value);
   }
-  function read(meter?: Meter) {
-    if (!meter) return 0;
-    meter.analyser.getFloatTimeDomainData(meter.samples);
-    return voiceLevel(meter.samples);
+  async function sample(current: RTCPeerConnection) {
+    try {
+      const report = await current.getStats();
+      if (peer !== current) return;
+      levels = meter.read(report.values());
+    } catch {
+      if (peer !== current) return;
+      levels = { visitor: 0, voice: 0 };
+    }
+    if (peer === current) poll = setTimeout(() => void sample(current), 50);
   }
   function animate(timestamp: number) {
     frame = undefined;
     const elapsed = Math.min(100, Math.max(0, timestamp - previous));
     previous = timestamp;
     impulse *= Math.exp(-elapsed / 220);
-    visitorEnvelope = followEnvelope(visitorEnvelope, muted ? 0 : read(input), elapsed);
-    voiceEnvelope = followEnvelope(voiceEnvelope, read(output), elapsed);
+    visitorEnvelope = followEnvelope(visitorEnvelope, muted ? 0 : levels.visitor, elapsed);
+    voiceEnvelope = followEnvelope(voiceEnvelope, levels.voice, elapsed);
     backgroundEnvelope = followEnvelope(
       backgroundEnvelope,
       Math.max(working ? 0.16 : 0, impulse),
@@ -63,8 +65,7 @@ export function createAriaEntity() {
     render('voice', voiceEnvelope);
     render('background', backgroundEnvelope);
     if (
-      input ||
-      output ||
+      peer ||
       working ||
       Math.max(visitorEnvelope, voiceEnvelope, backgroundEnvelope, impulse) > 0.0001
     )
@@ -74,25 +75,6 @@ export function createAriaEntity() {
     if (frame !== undefined) return;
     previous = performance.now();
     frame = requestAnimationFrame(animate);
-  }
-  function disconnect(meter?: Meter) {
-    meter?.source.disconnect();
-    meter?.analyser.disconnect();
-    meter?.sink.disconnect();
-  }
-  function meter(stream: MediaStream): Meter | undefined {
-    if (!context) return;
-    const source = context.createMediaStreamSource(stream),
-      analyser = context.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0;
-    const sink = context.createGain();
-    sink.gain.value = 0;
-    // A silent analysis branch leaves WebRTC capture and playback untouched.
-    source.connect(analyser);
-    analyser.connect(sink);
-    sink.connect(context.destination);
-    return { source, analyser, sink, samples: new Float32Array(analyser.fftSize) };
   }
   return {
     mark() {
@@ -104,24 +86,13 @@ export function createAriaEntity() {
       marks.add(svg);
       return svg;
     },
-    prepareAudio() {
-      if (context || !window.AudioContext) return;
-      try {
-        context = new AudioContext();
-        void context.resume().catch(() => {});
-      } catch {
-        /* Metering is optional; voice remains available. */
-      }
+    observe(connection: RTCPeerConnection) {
+      clearTimeout(poll);
+      peer = connection;
+      meter.reset();
+      levels = { visitor: 0, voice: 0 };
       muted = false;
-    },
-    input(stream: MediaStream) {
-      disconnect(input);
-      input = meter(stream);
-      schedule();
-    },
-    output(stream: MediaStream) {
-      disconnect(output);
-      output = meter(stream);
+      void sample(connection);
       schedule();
     },
     mute(value: boolean) {
@@ -136,14 +107,12 @@ export function createAriaEntity() {
       schedule();
     },
     stop() {
-      disconnect(input);
-      disconnect(output);
-      input = undefined;
-      output = undefined;
+      clearTimeout(poll);
+      peer = undefined;
+      meter.reset();
+      levels = { visitor: 0, voice: 0 };
       working = false;
       impulse = 0;
-      void context?.close().catch(() => {});
-      context = undefined;
       schedule();
     }
   };

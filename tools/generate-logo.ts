@@ -1,5 +1,5 @@
 import { FingerprintPattern } from 'lucide';
-import { writeFile } from 'node:fs/promises';
+import { writeChanged } from './files.ts';
 
 const escapeAttribute = (value: unknown) =>
   String(value).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
@@ -11,7 +11,7 @@ const paths = FingerprintPattern.map(([tag, attributes]) => {
 }).join('\n');
 
 export async function generateLogo() {
-  await writeFile(
+  await writeChanged(
     new URL('../favicon.svg', import.meta.url),
     `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <style>

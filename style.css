@@ -217,6 +217,7 @@ html:has(#cv-aria-dialog[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .cv-aria-header, .cv-aria-header h2, .cv-aria-actions, .cv-aria-voice, .cv-aria-form { display: flex; align-items: center; gap: 12px; }
 .cv-aria-header { justify-content: space-between; }
 .cv-aria-header h2 { font-size: var(--cv-title-size); font-weight: 900; }
+.cv-aria-header .cv-aria-mark { width: calc(var(--header-icon-size) + 2pt); height: calc(var(--header-icon-size) + 2pt); }
 #cv-aria-dialog button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 1px solid var(--cv-line); border-radius: 10px; color: var(--cv-ink); font: inherit; flex-shrink: 0; }
 #cv-aria-dialog button[hidden] { display: none; }
 #cv-aria-dialog button svg { width: var(--header-icon-size); height: var(--header-icon-size); flex-shrink: 0; }

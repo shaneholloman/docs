@@ -1,6 +1,6 @@
 import {
   createElement, CodeXml, ContactRound, Mail, Monitor, Sun, Moon,
-  EllipsisVertical, X, ArrowUpRight, ArrowUp, Check
+  EllipsisVertical, X, ArrowUpRight, ArrowUp, Check, Search
 } from 'lucide';
 
 const icons = {
@@ -31,6 +31,25 @@ function replaceIcon(svg, definition) {
 }
 
 function updateHeader() {
+  const navigation = document.querySelector('#navbar nav[aria-label="Main"] > ul');
+  if (navigation && !navigation.querySelector('.cv-search-item')) {
+    const item = document.createElement('li');
+    item.className = 'cv-search-item';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cv-header-search';
+    button.setAttribute('aria-label', 'Open search');
+    button.setAttribute('title', 'Search');
+    button.append(renderIcon(['search', Search]));
+    button.addEventListener('click', () => document.getElementById('search-bar-entry')?.click());
+    item.append(button);
+    navigation.prepend(item);
+  }
+  const mobileSearch = document.getElementById('search-bar-entry-mobile');
+  if (mobileSearch) {
+    mobileSearch.setAttribute('title', 'Search');
+    replaceIcon(mobileSearch.querySelector('svg'), ['search', Search]);
+  }
   const home = document.querySelector('#navbar a:has(> .nav-logo)');
   if (home) {
     home.setAttribute('href', '#top');

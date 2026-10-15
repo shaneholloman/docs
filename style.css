@@ -25,8 +25,8 @@
 }
 html { scroll-behavior: smooth; scroll-padding-top: 100px; }
 .lucide { width: 1em; height: 1em; }
-/* A one-page CV needs no documentation search or assistant controls. */
-#search-bar-entry, #search-bar-entry-mobile, #assistant-entry { display: none !important; }
+/* Use an icon trigger for Mintlify search; keep the assistant hidden. */
+#search-bar-entry, #assistant-entry { display: none !important; }
 #navbar button:has(> div > .sr-only) { display: none; }
 /* External SVG images cannot inherit currentColor; use the shared icon as a mask. */
 #navbar a:has(> .nav-logo) {
@@ -40,12 +40,14 @@ html { scroll-behavior: smooth; scroll-padding-top: 100px; }
 }
 #navbar .nav-logo { opacity: 0; }
 #navbar .navbar-link a,
+#navbar .cv-header-search,
+#search-bar-entry-mobile,
 #theme-preference-menu-trigger,
 #navbar button[aria-label="More actions"] { color: var(--cv-muted); }
-:is(#navbar .navbar-link a, #theme-preference-menu-trigger, #navbar button[aria-label="More actions"], #navbar a:has(> .nav-logo)):is(:hover, :focus-visible) {
+:is(#navbar .navbar-link a, #navbar .cv-header-search, #search-bar-entry-mobile, #theme-preference-menu-trigger, #navbar button[aria-label="More actions"], #navbar a:has(> .nav-logo)):is(:hover, :focus-visible) {
   color: rgb(var(--primary));
 }
-:is(#navbar .navbar-link a, #theme-preference-menu-trigger, #navbar button[aria-label="More actions"], #navbar a:has(> .nav-logo)):focus-visible {
+:is(#navbar .navbar-link a, #navbar .cv-header-search, #search-bar-entry-mobile, #theme-preference-menu-trigger, #navbar button[aria-label="More actions"], #navbar a:has(> .nav-logo)):focus-visible {
   outline: 2px solid rgb(var(--primary));
   outline-offset: 4px;
   border-radius: 2px;
@@ -85,7 +87,9 @@ html { scroll-behavior: smooth; scroll-padding-top: 100px; }
   padding: 0;
   line-height: 1.5;
 }
-#theme-preference-menu-trigger {
+#theme-preference-menu-trigger,
+#navbar .cv-header-search,
+#search-bar-entry-mobile {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,7 +97,10 @@ html { scroll-behavior: smooth; scroll-padding-top: 100px; }
   height: var(--header-item-height);
   padding: 0;
 }
-#theme-preference-menu-trigger svg { width: var(--header-icon-size); height: var(--header-icon-size); }
+#theme-preference-menu-trigger svg,
+#navbar .cv-header-search svg,
+#search-bar-entry-mobile svg { width: var(--header-icon-size); height: var(--header-icon-size); }
+#navbar div:has(> #search-bar-entry-mobile) { gap: var(--header-gap); }
 #navbar button[aria-label="More actions"] { width: var(--header-icon-size); height: var(--header-item-height); }
 #navbar button[aria-label="More actions"] svg { width: var(--header-icon-size); height: var(--header-icon-size); }
 .cv-inline-icon { display: inline-flex; vertical-align: middle; }
